@@ -630,7 +630,7 @@ def index():
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
 <title>SISTRIX LED Ticker</title>
 <style>
@@ -927,7 +927,8 @@ def index():
  .led-edit-popup .btn-ok { background:var(--accent); color:var(--toast-text); border:none; border-radius:var(--radius-sm); padding:0 14px; font-family:inherit; font-size:var(--text-sm); cursor:pointer; font-weight:bold; flex-shrink:0; height:32px; box-sizing:border-box; }
  .led-edit-popup .btn-ok:hover { opacity:0.85; }
  .led-edit-popup .color-grid { display:flex; flex-wrap:wrap; gap:4px; }
- .led-edit-popup .color-swatch { width:24px; height:24px; border-radius:var(--radius-sm); border:2px solid transparent; cursor:pointer; flex-shrink:0; transition:border-color 0.15s, transform 0.15s; }
+ .led-edit-popup .color-swatch { width:24px; height:24px; border-radius:var(--radius-sm); border:2px solid transparent; cursor:pointer; flex-shrink:0; transition:border-color 0.15s, transform 0.15s; position:relative; }
+ .led-edit-popup .color-swatch::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; }
  .led-edit-popup .color-swatch:hover { border-color:var(--text); transform:scale(1.15); }
  .led-edit-popup .color-swatch.active { border-color:var(--accent); }
  .led-edit-popup .color-swatch.rainbow { background:linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff); }
@@ -942,7 +943,8 @@ def index():
  .edit-input { background-color:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; height:34px; box-sizing:border-box; font-size:var(--text-sm); }
 
  /* Brand card */
- .social-link { color:var(--dim); display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; }
+ .social-link { color:var(--dim); display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; position:relative; }
+ .social-link::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:44px; height:44px; }
  .social-link:hover { color:var(--text); }
  .header-btn { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:var(--space-3) var(--space-4); border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; font-size:var(--text-sm); height:30px; display:inline-flex; align-items:center; box-sizing:border-box; }
  .header-btn:hover { border-color:var(--dim); }
@@ -969,7 +971,7 @@ def index():
  <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">Add API</span>
  </button>
  <div id="apiKeyPopup" class="apikey-popup" style="display:none;">
- <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" style="width:260px;">
+ <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;">
  <button class="btn btn-small" onclick="saveApiKey()" data-i18n="save">Save</button>
  </div>
  </div>
@@ -997,7 +999,7 @@ def index():
  </div>
  <div class="led-controls">
  <button id="btnPlayPause" onclick="toggleAutoRotate()" class="btn-outline active" aria-label="Toggle auto-rotation" style="min-width:70px;"><span id="domainCounter">&#9654; -/-</span></button>
- <div id="cycleBtns" style="display:flex;align-items:center;gap:4px;"></div>
+ <div id="cycleBtns" role="group" aria-label="Rotation speed" style="display:flex;align-items:center;gap:4px;"></div>
  <div style="display:flex;gap:var(--space-3);margin-left:auto;">
  <button id="btnReset" onclick="resetCurrentLayout()" class="btn-outline" style="display:none;" data-i18n="reset">Reset</button>
  <button id="btnEdit" onclick="toggleEdit()" class="btn-outline" data-i18n="edit">&#9998; Edit</button>
@@ -1024,14 +1026,14 @@ def index():
  <div class="section">
  <h2 class="section-title" data-i18n="domains_title">Domains</h2>
  <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
- <div class="add-form">
- <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8"></div>
- <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder"></div>
+ <form class="add-form" onsubmit="event.preventDefault();addDomain()">
+ <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8" required aria-required="true"></div>
+ <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder" required aria-required="true"></div>
  <div><label for="newType" data-i18n="type">Type</label><div id="newType" class="custom-select"></div></div>
  <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select"></div></div>
  <div><label for="newMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select"></div></div>
- <div><label>&nbsp;</label><button class="btn" onclick="addDomain()" data-i18n="add">+ Add</button></div>
- </div>
+ <div><label aria-hidden="true">&nbsp;</label><button type="submit" class="btn" data-i18n="add">+ Add</button></div>
+ </form>
  </div>
  </div>
 </main>
@@ -2086,7 +2088,7 @@ async function addDomain() {
 const CYCLE_OPTIONS = [5, 10, 15, 30];
 function renderCycleBtns() {
  const html = CYCLE_OPTIONS.map(s =>
- `<button class="btn-outline${cycleTime === s * 1000 ? ' active' : ''}" onclick="setCycle(${s})">${s}s</button>`
+ `<button class="btn-outline${cycleTime === s * 1000 ? ' active' : ''}" onclick="setCycle(${s})" aria-pressed="${cycleTime === s * 1000}">${s}s</button>`
  ).join('');
  if (DOM.cycleBtns.innerHTML !== html) DOM.cycleBtns.innerHTML = html;
 }
