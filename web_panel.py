@@ -522,25 +522,38 @@ def fetch_favicon():
     if not url:
         return jsonify({"error": "No URL"}), 400
 
-    # Try common favicon locations
     if not url.startswith("http"):
         url = "https://" + url
-    domain_base = url.rstrip("/")
-    favicon_urls = [
-        f"https://www.google.com/s2/favicons?domain={url}&sz=32",
-        f"{domain_base}/favicon.ico",
-        f"{domain_base}/apple-touch-icon.png",
-    ]
 
     img = None
-    for fav_url in favicon_urls:
+    # If URL points to an image file, try downloading it directly first
+    parsed_path = url.split("?")[0].lower()
+    is_image_url = any(parsed_path.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".webp"))
+    if is_image_url:
         try:
-            resp = http_requests.get(fav_url, timeout=10)
+            resp = http_requests.get(url, timeout=10)
             resp.raise_for_status()
             img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
-            break
         except Exception:
-            continue
+            pass
+
+    # Otherwise treat as domain → fetch favicon
+    if not img:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc or urlparse(url).path.split("/")[0]
+        favicon_urls = [
+            f"https://www.google.com/s2/favicons?domain={domain}&sz=32",
+            f"https://{domain}/favicon.ico",
+            f"https://{domain}/apple-touch-icon.png",
+        ]
+        for fav_url in favicon_urls:
+            try:
+                resp = http_requests.get(fav_url, timeout=5)
+                resp.raise_for_status()
+                img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+                break
+            except Exception:
+                continue
 
     if not img:
         return jsonify({"error": "Could not fetch favicon"}), 404
@@ -881,7 +894,7 @@ def _build_index_html():
  background:var(--surface); border:1px solid var(--border); color:var(--text);
  padding:0 var(--space-4); border-radius:var(--radius-sm); height:34px; min-width:34px;
  display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
- cursor:pointer; font-family:inherit; font-size:var(--text-sm); transition:all 0.2s;
+ cursor:pointer; font-family:inherit; font-size:var(--text-xs); text-transform:uppercase; letter-spacing:1px; font-weight:bold; transition:all 0.2s;
  }
  .btn-outline:hover { border-color:var(--dim); }
  .btn-outline:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -904,7 +917,7 @@ def _build_index_html():
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
 
  .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; }
- .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; }
+ .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:1px; font-weight:bold; }
  .status-bar .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
  .status-dot { display:inline-block; width:var(--space-3); height:var(--space-3); border-radius:50%; margin-right:var(--space-2); }
  .dot-green { background:var(--accent); }
@@ -1116,7 +1129,7 @@ const I18N = {
  loading_dots:'Cargando...', fetching:'Pidiendo datos a SISTRIX...',
  data_updated:'Datos actualizados desde API', error_update:'Error al actualizar',
  confirm_delete:'¿Eliminar?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Solo recarga los días que faltan · Clic para confirmar', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', loading_data_short:'Cargando datos...',
- cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener favicon', brand_or:'o', brand_saved:'Marca guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
+ cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener', brand_or:'o', brand_saved:'Marca guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
  edit:'\u270E Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
@@ -1130,7 +1143,7 @@ const I18N = {
  loading_dots:'Loading...', fetching:'Fetching data from SISTRIX...',
  data_updated:'Data updated from API', error_update:'Update error',
  confirm_delete:'Delete?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Only fetches missing days · Click to confirm', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', loading_data_short:'Loading data...',
- cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Get favicon', brand_or:'or', brand_saved:'Brand saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
+ cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Fetch', brand_or:'or', brand_saved:'Brand saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
  edit:'\u270E Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
@@ -1144,7 +1157,7 @@ const I18N = {
  loading_dots:'Chargement...', fetching:'Récupération des données SISTRIX...',
  data_updated:'Données mises à jour depuis l\\'API', error_update:'Erreur de mise à jour',
  confirm_delete:'Supprimer ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ne recharge que les jours manquants · Cliquez pour confirmer', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', loading_data_short:'Chargement...',
- cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir favicon', brand_or:'ou', brand_saved:'Marque enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
+ cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir', brand_or:'ou', brand_saved:'Marque enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
  edit:'\u270E Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
@@ -1158,7 +1171,7 @@ const I18N = {
  loading_dots:'Caricamento...', fetching:'Recupero dati da SISTRIX...',
  data_updated:'Dati aggiornati dall\\'API', error_update:'Errore di aggiornamento',
  confirm_delete:'Eliminare?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Ricarica solo i giorni mancanti · Clicca per confermare', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', loading_data_short:'Caricamento...',
- cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni favicon', brand_or:'o', brand_saved:'Marca salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
+ cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni', brand_or:'o', brand_saved:'Marca salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
  edit:'\u270E Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
@@ -1172,7 +1185,7 @@ const I18N = {
  loading_dots:'Laden...', fetching:'Daten von SISTRIX abrufen...',
  data_updated:'Daten von API aktualisiert', error_update:'Fehler beim Aktualisieren',
  confirm_delete:'Löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Lädt nur fehlende Tage nach · Klicken zum Bestätigen', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', loading_data_short:'Lade Daten...',
- cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Favicon laden', brand_or:'oder', brand_saved:'Marke gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
+ cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Laden', brand_or:'oder', brand_saved:'Marke gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
  edit:'\u270E Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
@@ -1186,7 +1199,7 @@ const I18N = {
  loading_dots:'A carregar...', fetching:'A obter dados do SISTRIX...',
  data_updated:'Dados atualizados da API', error_update:'Erro ao atualizar',
  confirm_delete:'Eliminar?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Só recarrega os dias em falta · Clique para confirmar', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', loading_data_short:'A carregar dados...',
- cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter favicon', brand_or:'ou', brand_saved:'Marca guardada', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
+ cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter', brand_or:'ou', brand_saved:'Marca guardada', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
  edit:'\u270E Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
@@ -2817,7 +2830,7 @@ function showLogoPopup(screenX, screenY) {
  row1.className = 'edit-row';
  const inp = document.createElement('input');
  inp.type = 'text'; inp.value = _brandFaviconUrl || '';
- inp.placeholder = 'domain.com';
+ inp.placeholder = 'domain.com / image URL';
  const fetchBtn = document.createElement('button');
  fetchBtn.className = 'btn-ok';
  fetchBtn.textContent = t('brand_fetch');
@@ -3248,7 +3261,12 @@ window.addEventListener('resize', syncArrowHeight);
   previewData = data.preview;
   lastCacheData = data.cache;
   updateStatusBar();
-  if (data.brand) { brandData = Object.assign(brandData, data.brand); }
+  if (data.brand) {
+   brandData = Object.assign(brandData, data.brand);
+   if (brandData.logo_pixels) brandLogoPixels = brandData.logo_pixels;
+   if (brandData.layout) Object.assign(brandLayout, brandData.layout);
+   BL_IDS.forEach(id => { const v = brandLayout[id] ?? ''; BL[id].value = typeof v === 'number' ? String(v) : v; });
+  }
   if (data.brand_layout) { Object.assign(brandLayout, data.brand_layout); }
   renderSlide();
   syncArrowHeight();
