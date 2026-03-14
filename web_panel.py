@@ -14,10 +14,12 @@ Features:
 
 import json
 import io
+import gzip
+import hashlib
 import threading
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from datetime import datetime, timedelta
 import requests as http_requests
 from PIL import Image, ImageFilter, ImageEnhance
@@ -29,16 +31,31 @@ CACHE_DIR.mkdir(exist_ok=True)
 
 app = Flask(__name__)
 _config_lock = threading.Lock()
+_config_cache = None
+_config_mtime = 0
 
 
 def load_config():
-    with _config_lock, open(CONFIG_PATH) as f:
-        return json.load(f)
+    global _config_cache, _config_mtime
+    with _config_lock:
+        try:
+            mtime = CONFIG_PATH.stat().st_mtime
+        except OSError:
+            mtime = 0
+        if _config_cache is None or mtime != _config_mtime:
+            with open(CONFIG_PATH) as f:
+                _config_cache = json.load(f)
+            _config_mtime = mtime
+        return _config_cache
 
 
 def save_config(data):
-    with _config_lock, open(CONFIG_PATH, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    global _config_cache, _config_mtime
+    with _config_lock:
+        with open(CONFIG_PATH, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        _config_cache = data
+        _config_mtime = CONFIG_PATH.stat().st_mtime
 
 
 # ============================================================
@@ -335,12 +352,13 @@ def reorder_domains():
 @app.route("/api/preview", methods=["GET"])
 def get_preview_data():
     """Returns data for all active domains for the preview."""
-    config = load_config()
-    active = [(i, d) for i, d in enumerate(config.get("domains", [])) if d.get("active")]
     force = request.args.get("force") == "true"
     refresh = request.args.get("refresh") == "true"
+    return jsonify(get_preview_data_internal(load_config(), force=force, refresh=refresh))
 
-    # Fetch in parallel — pass api_key to avoid re-reading config per thread
+
+def get_preview_data_internal(config, force=False, refresh=False):
+    active = [(i, d) for i, d in enumerate(config.get("domains", [])) if d.get("active")]
     api_key = config.get("sistrix_api_key", "")
 
     def fetch_one(item):
@@ -369,13 +387,16 @@ def get_preview_data():
                     "from_cache": data.get("_from_cache", False),
                     "last_date": dates[0] if dates else "",
                 })
-    return jsonify(results)
+    return results
 
 
 
 @app.route("/api/cache/status", methods=["GET"])
 def cache_status():
-    """Cache status: what data exists and when it was last updated."""
+    return jsonify(get_cache_status_internal(load_config()))
+
+
+def get_cache_status_internal(config):
     status = []
     if CACHE_DIR.exists():
         for f in sorted(CACHE_DIR.glob("*.json")):
@@ -394,7 +415,7 @@ def cache_status():
                     })
             except Exception:
                 status.append({"file": f.name, "error": True})
-    return jsonify(status)
+    return status
 
 
 def _parse_sistrix_credits(api_response):
@@ -618,15 +639,59 @@ def get_countries():
     return jsonify(SISTRIX_COUNTRIES)
 
 
+@app.route("/api/init", methods=["GET"])
+def api_init():
+    """Single endpoint for initial page load — replaces 4 separate requests."""
+    config = load_config()
+    # Preview data
+    preview = get_preview_data_internal(config)
+    # Cache status
+    cache = get_cache_status_internal(config)
+    # Brand
+    brand = config.get("brand", {"name": "", "message": "", "logo": None, "enabled": True})
+    brand_layout = config.get("brand_layout", {})
+    return jsonify({
+        "config": config,
+        "preview": preview,
+        "cache": cache,
+        "brand": brand,
+        "brand_layout": brand_layout,
+        "countries": SISTRIX_COUNTRIES
+    })
+
+
 # ============================================================
 # WEB INTERFACE WITH LED SIMULATOR
 # ============================================================
 
-@app.route("/")
-def index():
-    from flask import make_response
+_index_cache = None
+_index_etag = None
 
-    resp = make_response("""<!DOCTYPE html>
+@app.route("/")
+
+def index():
+    global _index_cache, _index_etag
+
+    # Check ETag — return 304 if unchanged
+    if _index_etag and request.headers.get('If-None-Match') == _index_etag:
+        return make_response('', 304)
+
+    if _index_cache is None:
+        html = _build_index_html()
+        _index_cache = gzip.compress(html.encode(), compresslevel=6)
+        _index_etag = '"' + hashlib.md5(_index_cache).hexdigest() + '"'
+
+    resp = make_response(_index_cache)
+    resp.headers['Content-Encoding'] = 'gzip'
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'private, max-age=60'
+    resp.headers['ETag'] = _index_etag
+    resp.headers['Vary'] = 'Accept-Encoding'
+    return resp
+
+
+def _build_index_html():
+    return """<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1898,15 +1963,17 @@ async function moveDomain(idx, dir) {
 }
 
 let _dragSrcIndex = null;
+// Single global mouseup handler — avoids listener leak
+document.addEventListener('mouseup', () => {
+ document.querySelectorAll('.domain-card[draggable="true"]').forEach(c => { c.draggable = false; });
+});
 function initDragAndDrop() {
  const cards = DOM.domainList.querySelectorAll('.domain-card');
  cards.forEach(card => {
-  // Only allow drag when starting from handle
   card.draggable = false;
   const handle = card.querySelector('.drag-handle');
   if (handle) {
    handle.addEventListener('mousedown', () => { card.draggable = true; });
-   document.addEventListener('mouseup', () => { card.draggable = false; }, {once: false});
   }
   card.addEventListener('dragstart', e => {
    _dragSrcIndex = +card.dataset.index;
@@ -1937,56 +2004,53 @@ function initDragAndDrop() {
    await loadConfig();
    await loadPreview();
   });
+  // Touch: only touchstart per card, global move/end registered once above
+  if (handle) {
+   handle.addEventListener('touchstart', e => {
+    e.preventDefault();
+    _touchIndex = +card.dataset.index;
+    _touchCard = card;
+    _touchClone = card.cloneNode(true);
+    _touchClone.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:0.8;width:'+card.offsetWidth+'px;left:'+card.getBoundingClientRect().left+'px;top:'+card.getBoundingClientRect().top+'px;';
+    document.body.appendChild(_touchClone);
+    card.classList.add('dragging');
+   }, {passive:false});
+  }
  });
 
- // Touch drag support
- let _touchCard = null, _touchClone = null, _touchStartY = 0, _touchIndex = null;
- cards.forEach(card => {
-  const handle = card.querySelector('.drag-handle');
-  if (!handle) return;
-  handle.addEventListener('touchstart', e => {
-   e.preventDefault();
-   _touchIndex = +card.dataset.index;
-   _touchCard = card;
-   _touchStartY = e.touches[0].clientY;
-   _touchClone = card.cloneNode(true);
-   _touchClone.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:0.8;width:'+card.offsetWidth+'px;left:'+card.getBoundingClientRect().left+'px;top:'+card.getBoundingClientRect().top+'px;';
-   document.body.appendChild(_touchClone);
-   card.classList.add('dragging');
-  }, {passive:false});
- });
- document.addEventListener('touchmove', e => {
-  if (!_touchClone) return;
-  e.preventDefault();
-  const y = e.touches[0].clientY;
-  _touchClone.style.top = (y - 20) + 'px';
-  const els = DOM.domainList.querySelectorAll('.domain-card');
-  els.forEach(c => c.classList.remove('drag-over'));
-  const target = document.elementFromPoint(e.touches[0].clientX, y);
-  const targetCard = target?.closest('.domain-card');
-  if (targetCard && targetCard !== _touchCard) targetCard.classList.add('drag-over');
- }, {passive:false});
- document.addEventListener('touchend', async () => {
-  if (!_touchClone) return;
-  _touchClone.remove(); _touchClone = null;
-  if (_touchCard) _touchCard.classList.remove('dragging');
-  const overCard = DOM.domainList.querySelector('.drag-over');
-  if (overCard) {
-   overCard.classList.remove('drag-over');
-   const to = +overCard.dataset.index;
-   if (_touchIndex !== null && _touchIndex !== to) {
-    const order = [...Array(currentConfig.domains.length).keys()];
-    const [moved] = order.splice(_touchIndex, 1);
-    order.splice(to, 0, moved);
-    await postJSON('/api/domains/reorder', {order});
-    lastDomainHash = '';
-    await loadConfig();
-    await loadPreview();
-   }
-  }
-  _touchCard = null; _touchIndex = null;
- });
 }
+// Touch drag — global handlers registered once to avoid leak
+let _touchCard = null, _touchClone = null, _touchIndex = null;
+document.addEventListener('touchmove', e => {
+ if (!_touchClone) return;
+ e.preventDefault();
+ const y = e.touches[0].clientY;
+ _touchClone.style.top = (y - 20) + 'px';
+ DOM.domainList.querySelectorAll('.domain-card').forEach(c => c.classList.remove('drag-over'));
+ const target = document.elementFromPoint(e.touches[0].clientX, y);
+ const targetCard = target?.closest('.domain-card');
+ if (targetCard && targetCard !== _touchCard) targetCard.classList.add('drag-over');
+}, {passive:false});
+document.addEventListener('touchend', async () => {
+ if (!_touchClone) return;
+ _touchClone.remove(); _touchClone = null;
+ if (_touchCard) _touchCard.classList.remove('dragging');
+ const overCard = DOM.domainList.querySelector('.drag-over');
+ if (overCard) {
+  overCard.classList.remove('drag-over');
+  const to = +overCard.dataset.index;
+  if (_touchIndex !== null && _touchIndex !== to) {
+   const order = [...Array(currentConfig.domains.length).keys()];
+   const [moved] = order.splice(_touchIndex, 1);
+   order.splice(to, 0, moved);
+   await postJSON('/api/domains/reorder', {order});
+   lastDomainHash = '';
+   await loadConfig();
+   await loadPreview();
+  }
+ }
+ _touchCard = null; _touchIndex = null;
+});
 
 function cancelEdit() {
  lastDomainHash = '';
@@ -3160,10 +3224,13 @@ function countryOptions(countries) {
  return countries.map(c => ({value: c.code, text: c.code.toUpperCase(), search: c.code + ' ' + c.name}));
 }
 
+function setCountries(countries) {
+ window._countries = countries;
+ initCustomSelect(DOM.newCountry, countryOptions(countries), 'es');
+}
 async function loadCountries() {
  const res = await fetch('/api/countries');
- window._countries = await res.json();
- initCustomSelect(DOM.newCountry, countryOptions(window._countries), 'es');
+ setCountries(await res.json());
 }
 
 // Init type and mode custom selects
@@ -3199,13 +3266,42 @@ function syncArrowHeight() {
 window.addEventListener('resize', syncArrowHeight);
 
 
-loadConfig();
-loadPreview();
-loadCacheStatus();
-loadBrand();
+// Unified init — single request replaces 5 separate ones
+(async () => {
+ try {
+  const res = await fetch('/api/init');
+  const data = await res.json();
+  setCountries(data.countries);
+  applyConfig(data.config);
+  previewData = data.preview;
+  lastCacheData = data.cache;
+  updateStatusBar();
+  if (data.brand) { brandData = Object.assign(brandData, data.brand); }
+  if (data.brand_layout) { Object.assign(brandLayout, data.brand_layout); }
+  renderSlide();
+  syncArrowHeight();
+ } catch(e) {
+  // Fallback to individual requests
+  loadCountries();
+  await loadConfig();
+  loadPreview();
+  loadCacheStatus();
+  loadBrand();
+ }
+})();
 
-// Refresh preview data every 5 minutes
-setInterval(() => { loadPreview(); loadCacheStatus(); }, 300000);
+// Refresh preview every 5 minutes — pause when tab is hidden
+let _pollTimer = null;
+function startPolling() {
+ stopPolling();
+ _pollTimer = setInterval(() => { loadPreview(); loadCacheStatus(); }, 300000);
+}
+function stopPolling() { if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; } }
+startPolling();
+document.addEventListener('visibilitychange', () => {
+ if (document.hidden) stopPolling();
+ else { startPolling(); loadPreview(); loadCacheStatus(); }
+});
 requestAnimationFrame(syncArrowHeight);
 
 // Click outside domain edit → cancel (mousedown to avoid conflict with onclick)
@@ -3217,9 +3313,7 @@ document.addEventListener('mousedown', e => {
 
 </script>
 </body>
-</html>""")
-    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    return resp
+</html>"""
 
 
 if __name__ == "__main__":
