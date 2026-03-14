@@ -885,9 +885,6 @@ def _build_index_html():
  }
  .btn-outline:hover { border-color:var(--dim); }
  .btn-outline:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
- .btn-outline.active { border-color:var(--accent); color:var(--accent); }
-
- /* Danger filled button */
  /* Clickable text (domain labels, etc.) */
  .clickable { cursor:pointer; }
  .clickable:hover { color:var(--accent); }
@@ -925,7 +922,6 @@ def _build_index_html():
  .section { padding:var(--space-5); }
  .add-form { grid-template-columns:1fr 1fr; }
  .add-form > div:last-child { grid-column: 1 / -1; }
- .settings-grid { grid-template-columns:1fr; }
  .led-outer { padding:var(--space-4); }
  #ledCanvas { width:100% !important; height:auto !important; max-width:100%; display:block; }
  .led-controls { flex-wrap:wrap; justify-content:center; gap:var(--space-3); }
@@ -1003,7 +999,6 @@ def _build_index_html():
 
 
  /* Reusable form classes */
- .layout-input { width:100%; background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); text-align:center; height:34px; box-sizing:border-box; }
  .edit-grid { display:flex; flex-direction:column; gap:var(--space-3); width:100%; }
  .edit-row { display:flex; gap:var(--space-4); align-items:center; }
  .edit-input { background-color:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; height:34px; box-sizing:border-box; font-size:var(--text-sm); }
@@ -1885,9 +1880,7 @@ function toast(msg, persist) {
  if (!persist) _toastTimer = setTimeout(() => DOM.toast.classList.remove('show'), 2000);
 }
 
-async function loadConfig() {
- const res = await fetch('/api/config');
- const config = await res.json();
+function applyConfig(config) {
  currentConfig = config;
  const keyInput = DOM.apiKey;
  const hasKey = config.sistrix_api_key && config.sistrix_api_key !== 'TU_API_KEY_AQUI';
@@ -1901,11 +1894,9 @@ async function loadConfig() {
  renderCycleBtns();
  renderDomains(config.domains);
  updateStatusBar();
- // Fetch credits in background
  if (hasKey && sistrixCredits === null) {
  fetch('/api/credits').then(r => r.json()).then(d => { sistrixCredits = d.credits; updateStatusBar(); });
  }
- // Restore language and theme from config
  if (config.language && config.language !== currentLang) {
  currentLang = config.language;
  DOM.langSelect.value = currentLang;
@@ -1914,10 +1905,13 @@ async function loadConfig() {
  if (config.theme && config.theme !== currentTheme) {
  applyTheme(config.theme);
  }
- // Restore data layout
  if (config.data_layout) {
  Object.assign(dataLayout, config.data_layout);
  }
+}
+async function loadConfig() {
+ const res = await fetch('/api/config');
+ applyConfig(await res.json());
 }
 
 function renderDomains(domains) {
@@ -2679,6 +2673,22 @@ const COLOR_PALETTE = [
  '#8800ff','#cc00ff','#ff00ff','#ff0088',
  '#00c853','#00dc00','#ff2d55','#ff2828',
 ];
+function mountPopup(popup, screenX, screenY) {
+ document.body.appendChild(popup);
+ _editPopup = popup;
+ const isMobile = window.innerWidth < 700;
+ if (isMobile) {
+ popup.style.left = '50%'; popup.style.top = '50%'; popup.style.transform = 'translate(-50%,-50%)';
+ } else {
+ const pw = popup.offsetWidth, ph = popup.offsetHeight;
+ let px = screenX - pw / 2, py = screenY + 12;
+ px = Math.max(8, Math.min(window.innerWidth - pw - 8, px));
+ if (py + ph > window.innerHeight - 8) py = screenY - ph - 12;
+ py = Math.max(8, py);
+ popup.style.left = px + 'px'; popup.style.top = py + 'px';
+ }
+}
+
 let _editPopupReturnFocus = null;
 function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  closeEditPopup();
@@ -2765,21 +2775,7 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  popup.appendChild(grid);
  }
 
- document.body.appendChild(popup);
- _editPopup = popup;
- // Position near click on desktop, centered on mobile
- const isMobile = window.innerWidth < 700;
- if (isMobile) {
- popup.style.left = '50%'; popup.style.top = '50%'; popup.style.transform = 'translate(-50%,-50%)';
- } else {
- // Place near click, then clamp to viewport
- const pw = popup.offsetWidth, ph = popup.offsetHeight;
- let px = screenX - pw / 2, py = screenY + 12;
- px = Math.max(8, Math.min(window.innerWidth - pw - 8, px));
- if (py + ph > window.innerHeight - 8) py = screenY - ph - 12;
- py = Math.max(8, py);
- popup.style.left = px + 'px'; popup.style.top = py + 'px';
- }
+ mountPopup(popup, screenX, screenY);
  if (inp) {
  inp.focus(); inp.select();
  const confirm = () => { const v = inp.value; closeEditPopup(); onConfirm(v); };
@@ -2852,19 +2848,7 @@ function showLogoPopup(screenX, screenY) {
  delBtn.textContent = t('brand_delete_logo');
  row2.appendChild(uploadLabel); row2.appendChild(delBtn);
  popup.appendChild(row1); popup.appendChild(divider); popup.appendChild(row2);
- document.body.appendChild(popup);
- _editPopup = popup;
- const isMobile = window.innerWidth < 700;
- if (isMobile) {
- popup.style.left = '50%'; popup.style.top = '50%'; popup.style.transform = 'translate(-50%,-50%)';
- } else {
- const pw = popup.offsetWidth, ph = popup.offsetHeight;
- let px = screenX - pw / 2, py = screenY + 12;
- px = Math.max(8, Math.min(window.innerWidth - pw - 8, px));
- if (py + ph > window.innerHeight - 8) py = screenY - ph - 12;
- py = Math.max(8, py);
- popup.style.left = px + 'px'; popup.style.top = py + 'px';
- }
+ mountPopup(popup, screenX, screenY);
  inp.focus();
  fetchBtn.addEventListener('click', e => { e.stopPropagation(); const url = inp.value.trim(); if (url) { _brandFaviconUrl = url; closeEditPopup(); fetchFavicon(url); } });
  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { const url = inp.value.trim(); if (url) { _brandFaviconUrl = url; closeEditPopup(); fetchFavicon(url); } } if (e.key === 'Escape') closeEditPopup(); });
@@ -2946,18 +2930,7 @@ function getDataElementBounds(data) {
 
 async function saveDataLayout() { await postJSON('/api/config/data_layout', dataLayout); }
 
-let _dataColorInput = null;
-function getDataColorInput() {
- if (!_dataColorInput) { _dataColorInput = document.createElement('input'); _dataColorInput.type = 'color'; _dataColorInput.style.display = 'none'; document.body.appendChild(_dataColorInput); }
- return _dataColorInput;
-}
-function openDataColorPicker(layoutKey, fallback) {
- const inp = getDataColorInput();
- inp.value = dataLayout[layoutKey] || fallback;
- inp.oninput = () => { dataLayout[layoutKey] = inp.value; drawLED(previewData[currentIndex]); };
- inp.onchange = () => { saveDataLayout(); };
- setTimeout(() => inp.click(), 50);
-}
+
 function getColorKeyForElement(id, data) {
  if (id === 'label') return ['labelColor', '#ffffff'];
  if (id === 'value') return ['valueColor', '#ffffff'];
@@ -3252,7 +3225,6 @@ initCustomSelect(DOM.langSelect, [
 ], 'en');
 DOM.langSelect.onchange = () => setLang(DOM.langSelect.value);
 initBrandSelects();
-loadCountries();
 function syncArrowHeight() {
  const outer = DOM.ledOuter;
  const statusRow = document.querySelector('.led-status-row');
