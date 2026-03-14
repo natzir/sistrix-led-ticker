@@ -649,7 +649,7 @@ def api_init():
     cache = get_cache_status_internal(config)
     # Brand
     brand = config.get("brand", {"name": "", "message": "", "logo": None, "enabled": True})
-    brand_layout = config.get("brand_layout", {})
+    brand_layout = brand.get("layout", {})
     return jsonify({
         "config": config,
         "preview": preview,
@@ -1281,7 +1281,7 @@ let rotateInterval = null;
 let cycleTime = 10000;
 
 // Data card layout (positions of each element on LED)
-const DEFAULT_DATA_LAYOUT = { labelX:1, labelY:0, labelFont:'small', labelH:null, changeY:0, changeFont:'small', changeH:null, changeX:null, valueX:1, valueY:10, valueFont:'large', valueH:null, countryX:52, countryY:10, countryFont:'small', countryH:null, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#999999', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
+const DEFAULT_DATA_LAYOUT = { labelX:1, labelY:0, labelFont:'small', labelH:null, labelScale:1, changeY:0, changeFont:'small', changeH:null, changeX:null, changeScale:1, valueX:1, valueY:10, valueFont:'large', valueH:null, valueScale:1, countryX:52, countryY:10, countryFont:'small', countryH:null, countryScale:1, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#999999', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
 let dataLayout = { ...DEFAULT_DATA_LAYOUT };
 let dataLayoutEditMode = false;
 
@@ -2480,7 +2480,7 @@ function stopMessageScroll() {
 
 // ===== GENERIC LAYOUT EDITOR =====
 let layoutEditMode = false;
-const DEFAULT_LAYOUT = { logoX:1, logoY:1, logoSize:16, nameX:19, nameY:6, nameH:null, msgX:0, msgY:21, msgH:null, nameColor:'#ffffff', msgColor:'#00c853', msgSpeed:60, nameFont:'small', msgFont:'small' };
+const DEFAULT_LAYOUT = { logoX:1, logoY:1, logoSize:18, nameX:24, nameY:7, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:60, nameFont:'small', msgFont:'small' };
 
 function createLayoutEditor(opts) {
  const st = { drag:null, resize:null, hover:null, dragOX:0, dragOY:0,
