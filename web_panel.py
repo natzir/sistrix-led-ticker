@@ -788,7 +788,7 @@ def _build_index_html():
  background:none; border:none; color:var(--dim); font-size:32px; cursor:pointer;
  padding:0 var(--space-3); line-height:1; flex-shrink:0;
  transition:color 0.2s; border-radius:var(--radius-sm);
- display:flex; align-items:center;
+ display:flex; align-items:center; min-height:192px;
  }
  .led-arrow:hover { color:var(--text); }
  .led-arrow:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -799,7 +799,7 @@ def _build_index_html():
  .led-center {
  display:flex; flex-direction:column; gap:var(--space-3);
  }
- .led-status-row { display:flex; justify-content:flex-end; align-items:center; min-height:20px; }
+ .led-status-row { display:flex; justify-content:flex-end; align-items:center; min-height:24px; }
  .led-outer {
  background: var(--led-bg);
  border-radius: var(--radius-md);
@@ -817,7 +817,7 @@ def _build_index_html():
  border-radius: var(--space-1);
  }
  .led-controls {
- display:flex; gap:var(--space-3); align-items:center; font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-3);
+ display:flex; gap:var(--space-3); align-items:center; font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-3); min-height:34px;
  }
  .led-info { font-size:var(--text-sm); color:var(--dim); }
  /* Domain cards */
@@ -899,7 +899,7 @@ def _build_index_html():
  .clickable:hover { color:var(--accent); }
 
  /* Add form */
- .add-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:var(--space-4); align-items:end; margin-top:var(--space-6); }
+ .add-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:var(--space-4); align-items:end; margin-top:var(--space-6); grid-auto-rows:minmax(52px, auto); }
  .add-form label { font-size:var(--text-xs); color:var(--dim); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:var(--space-2); }
  .add-form input, .add-form select {
  background-color:var(--surface-sunken); border:1px solid var(--border); color:var(--text);
@@ -907,13 +907,14 @@ def _build_index_html():
  }
  .add-form input:focus, .add-form select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px var(--focus-ring); }
  .add-form .btn { white-space:nowrap; }
+ .add-form .custom-select { min-height:34px; }
  .btn { background:var(--accent); color:black; border:none; padding:0 var(--space-5); border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; font-weight:bold; font-size:var(--text-xs); text-transform:uppercase; letter-spacing:1px; height:34px; min-width:70px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; }
  .btn:hover { background:var(--accent-hover); }
  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
 
- .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; }
- .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:1px; font-weight:bold; }
+ .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; min-height:40px; }
+ .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:1px; font-weight:bold; flex-shrink:0; white-space:nowrap; }
  .status-bar .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
  .status-dot { display:inline-block; width:var(--space-3); height:var(--space-3); border-radius:50%; margin-right:var(--space-2); }
  .dot-green { background:var(--accent); }
@@ -945,7 +946,7 @@ def _build_index_html():
  .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:var(--space-5); }
  }
  /* Custom dropdown (countries) */
- .custom-select { position:relative; width:100%; }
+ .custom-select { position:relative; width:100%; min-height:34px; }
  .custom-select-trigger {
  background:var(--surface-sunken); border:1px solid var(--border); color:var(--text);
  padding:var(--space-3) var(--space-4); border-radius:var(--radius-sm); font-family:inherit;
@@ -1037,7 +1038,7 @@ def _build_index_html():
  <a href="mailto:hola@natzir.com" title="hola@natzir.com" aria-label="Email" class="social-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/><path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/></svg></a>
  </p>
  </div>
- <div style="display:flex;gap:8px;align-items:center;">
+ <div style="display:flex;gap:8px;align-items:center;" role="toolbar" aria-label="Settings">
  <div style="position:relative;">
  <button id="btnApiKey" onclick="toggleApiKeyPopup()" class="header-btn" style="gap:6px;">
  <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">Add API</span>
@@ -1048,7 +1049,7 @@ def _build_index_html():
  </div>
  </div>
  <button id="themeToggle" onclick="toggleTheme()" class="header-btn" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
- <div id="langSelect" class="custom-select custom-select-sm" style="width:60px;" aria-label="Language"></div>
+ <div id="langSelect" class="custom-select custom-select-sm" style="width:60px;min-height:30px;" aria-label="Language"></div>
  </div>
 </header>
 
@@ -3281,7 +3282,8 @@ function syncArrowHeight() {
  a.style.marginTop = offset + 'px';
  });
 }
-window.addEventListener('resize', syncArrowHeight);
+let _resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(syncArrowHeight, 100); });
 
 
 // Unified init — single request replaces 5 separate ones

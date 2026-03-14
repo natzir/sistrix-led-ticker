@@ -41,7 +41,7 @@ Natzir Turrado — consultor SEO independiente basado en Barcelona. Trabaja con 
 
 ## Servicios systemd
 
-- `sistrix-web.service` — Web panel Flask en puerto 5000 (user: natzir)
+- `sistrix-web.service` — Web panel Flask en puerto 5001 (user: natzir)
 - `sistrix-display.service` — Display LED (user: root, necesario para GPIO). NO activar hasta tener el hardware.
 
 ## API de SISTRIX
@@ -75,31 +75,37 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 ### web_panel.py
 - Web panel completo en http://raspberrypi.local:5001 (puerto 5001)
 - **Simulador LED**: réplica visual del panel 64x32 con efecto LED (puntos circulares + glow), rotación automática, controles ◀ ▶
-- **Brand card**: tarjeta personalizada con logo (favicon o upload), nombre y mensaje con scroll animado (requestAnimationFrame)
-- **Layout editor**: editar posición y tamaño de elementos arrastrando/redimensionando (4 esquinas), doble-clic para editar texto/color
-- **Gestión de dominios**: añadir, eliminar, activar/desactivar, cambiar modo weekly/daily
+- **Brand card**: tarjeta personalizada con logo (favicon o imagen URL), nombre y mensaje con scroll animado (requestAnimationFrame)
+- **Layout editor**: editar posición y tamaño de elementos arrastrando/redimensionando (4 esquinas), doble-clic para editar texto/color. Cada elemento es independiente: LABEL, MODE, CHANGE%, VALUE, COUNTRY, SPARKLINE
+- **Gestión de dominios**: añadir, eliminar, activar/desactivar, cambiar modo weekly/daily, drag & drop reorder
 - **API key**: configurar y guardar (validación contra endpoint /credits)
 - **Display settings**: brillo, velocidad rotación, frecuencia refresco
 - **Caché status**: ver estado de datos cacheados (fresco/caducado/hace cuánto)
 - **i18n**: 6 idiomas (es, en, fr, it, de, pt)
 - **API REST**: todos los endpoints en /api/* para gestión programática
+- **Accesibilidad**: WCAG 2.1 AA (ARIA combobox/listbox, focus trapping, aria-live, keyboard navigation, touch targets)
+- **Performance**: gzip + ETag caching, unified `/api/init`, config mtime caching, debounced resize, visibility API polling
+- **Fuentes pixel**: bitmap fonts 3x5, 4x6, 5x7 con anchos variables (`.` y espacio más estrechos)
+- **Change% alineado a la derecha**: último carácter siempre en LED_W-1, crece hacia la izquierda
 - Canvas double-buffering (offscreen canvas → visible canvas blit)
 - UI dark monospace con design tokens CSS (spacing, radius, colors)
-- Responsive: funciona en desktop y mobile (touch events)
+- Responsive: funciona en desktop y mobile (touch events, CLS optimizado)
 
 ### config.json
 ```json
 {
-  "sistrix_api_key": "TU_API_KEY_AQUI",
+  "sistrix_api_key": "...",
   "display": {
     "brightness": 60,
     "cycle_seconds": 10,
     "refresh_minutes": 60
   },
   "domains": [
-    {"domain": "destinia.com", "country": "es", "label": "DEST", "mode": "weekly", "active": true},
+    {"domain": "destinia.com", "country": "es", "label": "DEST", "mode": "daily", "type": "domain", "active": true},
     ...
-  ]
+  ],
+  "brand": { "name": "...", "message": "...", "logo_pixels": [...], "enabled": true, "layout": {...} },
+  "data_layout": { "labelX": 2, "labelY": 1, "modeX": 59, "modeY": 8, ... }
 }
 ```
 
@@ -112,10 +118,13 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 5. ✅ Web panel probado en browser (simulador LED funcional)
 6. ✅ API key SISTRIX configurada y validada
 7. ✅ Repositorio git inicializado
-8. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
-9. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
-10. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
-11. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
+8. ✅ WCAG 2.1 AA accessibility audit completado
+9. ✅ Performance optimizado (gzip, ETag, unified init, CLS fixes)
+10. ✅ Bug fixes: request validation, cache mutation, API response safety
+11. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
+12. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
+13. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
+14. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
 
 ## Notas para desarrollo
 
@@ -128,11 +137,13 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - El simulador LED en el browser usa Canvas API con renderizado pixel-art (image-rendering: pixelated)
 - **IMPORTANTE**: No usar regex para modificar strings i18n del JS (riesgo de romper sintaxis). Usar Edit linea a linea.
 - **IMPORTANTE**: Hacer `git commit` antes de refactorizaciones grandes
+- **IMPORTANTE**: El usuario no quiere resúmenes de lo que se acaba de hacer, prefiere respuestas directas
 - Para desarrollo local: `python3 web_panel.py` sirve en puerto 5001
+- La caché gzip del HTML se vacía al reiniciar el servidor
+- Los anchos de caracteres pixel son variables: `.` ocupa 3px y espacio 2px en fuente large
 
 ## Próximos pasos posibles
 
-- Mejorar el simulador LED (más realismo, background grid)
 - Añadir más métricas: keywords totales, top keywords ganadas/perdidas
 - Alertas: notificación si la visibilidad cae más de X% (push, email, Telegram)
 - Modo comparación: dos dominios lado a lado
