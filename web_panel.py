@@ -704,7 +704,7 @@ def index():
  h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:4px; color:var(--accent); margin-bottom:var(--space-4); }
  .subtitle { font-size:var(--text-sm); color:var(--dim); margin-bottom:var(--space-9); }
  .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); overflow:hidden; }
- .section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; }
+ .section-title, h2.section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; font-weight:normal; }
 
  /* ===== LED SIMULATOR ===== */
  .led-wrapper {
@@ -752,12 +752,12 @@ def index():
  border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-4); transition:all 0.2s;
  min-width:0;
  }
- .domain-card.inactive { opacity:0.4; }
+ .domain-card.inactive { opacity:0.55; }
  .domain-card:hover { border-color:var(--hover); }
  .domain-label { font-size:var(--text-base); font-weight:bold; min-width:70px; }
  .domain-info { flex:1; font-size:var(--text-sm); color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
  .domain-type-tag { font-size:var(--text-xs); color:var(--blue); opacity:0.8; text-transform:uppercase; flex-shrink:0; }
- .domain-country-tag { font-size:var(--text-xs); color:#ff9500; opacity:0.8; text-transform:uppercase; flex-shrink:0; }
+ .domain-country-tag { font-size:var(--text-xs); color:#ffb340; text-transform:uppercase; flex-shrink:0; }
  .drag-handle { cursor:grab; color:var(--dim); font-size:var(--text-base); user-select:none; padding:0 var(--space-1); flex-shrink:0; opacity:0.4; transition:opacity 0.2s; line-height:1; }
  .drag-handle:hover { opacity:1; }
  .drag-handle:active { cursor:grabbing; }
@@ -790,14 +790,15 @@ def index():
  }
  .toggle-btn.on::after { left:19px; }
  .toggle-btn.off::after { left:3px; }
- .toggle-sm { width:32px; height:18px; border-radius:9px; vertical-align:middle; margin-left:var(--space-2); }
+ .toggle-sm { width:32px; height:18px; border-radius:9px; vertical-align:middle; margin-left:var(--space-2); position:relative; }
+ .toggle-sm::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:44px; height:44px; }
  .toggle-sm::after { width:14px; height:14px; top:2px; }
  .toggle-sm.on::after { left:16px; }
  .toggle-sm.off::after { left:2px; }
  /* Icon buttons (delete, cancel, small actions) */
  .btn-icon {
  display:inline-flex; align-items:center; justify-content:center;
- width:36px; height:36px; border-radius:var(--radius-sm);
+ width:44px; height:44px; border-radius:var(--radius-sm);
  border:1px solid transparent; background:none; padding:0; flex-shrink:0;
  cursor:pointer; font-family:inherit; font-size:var(--text-sm);
  transition:all 0.2s; opacity:0.4;
@@ -869,7 +870,7 @@ def index():
  .domain-mode { padding:var(--space-2) var(--space-4); font-size:var(--text-xs); min-height:36px; display:inline-flex; align-items:center; }
  .section .btn { width:100%; text-align:center; }
  .edit-row .btn, .edit-row .btn-icon { width:auto; flex:0 0 auto; }
- .edit-row .btn-icon { width:34px; height:34px; }
+ .edit-row .btn-icon { width:34px; height:34px; min-width:34px; min-height:34px; }
  .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:var(--space-5); }
  }
  /* Custom dropdown (countries) */
@@ -952,7 +953,7 @@ def index():
 </head>
 <body>
 
-<div style="display:flex;justify-content:space-between;align-items:start;">
+<header style="display:flex;justify-content:space-between;align-items:start;">
  <div>
  <h1>SISTRIX LED Ticker</h1>
  <p class="subtitle" style="display:flex;align-items:center;gap:8px;">
@@ -965,7 +966,7 @@ def index():
  <div style="display:flex;gap:8px;align-items:center;">
  <div style="position:relative;">
  <button id="btnApiKey" onclick="toggleApiKeyPopup()" class="header-btn" style="gap:6px;">
- <span id="apiDot" class="status-dot dot-red" style="margin:0;"></span><span class="api-label">Add API</span>
+ <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">Add API</span>
  </button>
  <div id="apiKeyPopup" class="apikey-popup" style="display:none;">
  <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" style="width:260px;">
@@ -973,17 +974,17 @@ def index():
  </div>
  </div>
  <button id="themeToggle" onclick="toggleTheme()" class="header-btn" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
- <div id="langSelect" class="custom-select custom-select-sm" style="width:60px;" role="listbox" aria-label="Language"></div>
+ <div id="langSelect" class="custom-select custom-select-sm" style="width:60px;" aria-label="Language"></div>
  </div>
-</div>
+</header>
 
 <main class="main-layout">
  <!-- LEFT COLUMN: LED PANEL -->
  <div class="col-panel">
  <div class="section">
- <div class="section-title">
+ <h2 class="section-title">
  <span data-i18n="sim_title">Panel</span>
- </div>
+ </h2>
  <div class="led-wrapper">
  <div class="led-stage">
  <button id="btnPrev" onclick="prevDomain()" class="led-arrow" aria-label="Previous domain">&#8249;</button>
@@ -1021,22 +1022,22 @@ def index():
  <div class="col-config">
  <!-- DOMAINS -->
  <div class="section">
- <div class="section-title" data-i18n="domains_title">Domains</div>
+ <h2 class="section-title" data-i18n="domains_title">Domains</h2>
  <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
  <div class="add-form">
  <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8"></div>
  <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder"></div>
- <div><label for="newType" data-i18n="type">Type</label><div id="newType" class="custom-select" role="listbox" aria-label="Type"></div></div>
- <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select" role="listbox" aria-label="Country"></div></div>
- <div><label for="newMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select" role="listbox" aria-label="Mode"></div></div>
+ <div><label for="newType" data-i18n="type">Type</label><div id="newType" class="custom-select"></div></div>
+ <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select"></div></div>
+ <div><label for="newMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select"></div></div>
  <div><label>&nbsp;</label><button class="btn" onclick="addDomain()" data-i18n="add">+ Add</button></div>
  </div>
  </div>
  </div>
 </main>
 
-<div class="status-bar" id="statusBar" role="status"></div>
-<div class="toast" id="toast" role="alert" aria-live="polite"></div>
+<footer class="status-bar" id="statusBar" role="status"></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 // ===== I18N =====
@@ -1210,7 +1211,7 @@ let rotateInterval = null;
 let cycleTime = 10000;
 
 // Data card layout (positions of each element on LED)
-const DEFAULT_DATA_LAYOUT = { labelX:1, labelY:0, labelFont:'small', labelH:null, changeY:0, changeFont:'small', changeH:null, changeX:null, valueX:1, valueY:10, valueFont:'large', valueH:null, countryX:52, countryY:10, countryFont:'small', countryH:null, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#666666', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
+const DEFAULT_DATA_LAYOUT = { labelX:1, labelY:0, labelFont:'small', labelH:null, changeY:0, changeFont:'small', changeH:null, changeX:null, valueX:1, valueY:10, valueFont:'large', valueH:null, countryX:52, countryY:10, countryFont:'small', countryH:null, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#999999', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
 let dataLayout = { ...DEFAULT_DATA_LAYOUT };
 let dataLayoutEditMode = false;
 
@@ -1233,7 +1234,7 @@ function drawLED(data) {
  const changeColor = isUp ? ((DL.changeUpColor||'#00dc00')) : ((DL.changeDownColor||'#ff2828'));
  const labelColor = (DL.labelColor||'#ffffff');
  const valueColor = (DL.valueColor||'#ffffff');
- const countryColor = (DL.countryColor||'#666666');
+ const countryColor = (DL.countryColor||'#999999');
 
  // Label + mode
  const lh = DL.labelH;
@@ -1660,7 +1661,9 @@ function renderSlide() {
  drawLED(d);
  const status = DOM.previewStatus;
  if (d) {
- status.innerHTML = `${d.domain.replace(/^https?:\/\//, '')} · ${d.type || 'domain'} · ${d.country.toUpperCase()} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')}`;
+ const info = `${d.domain.replace(/^https?:\/\//, '')} · ${d.type || 'domain'} · ${d.country.toUpperCase()} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')}`;
+ status.innerHTML = info;
+ canvas.setAttribute('aria-label', `${d.label}: ${d.current_value ?? ''} - ${info}`);
  }
  }
 }
@@ -1794,11 +1797,11 @@ function updateStatusBar() {
  if (lastCacheData.length) {
  const newest = lastCacheData.reduce((a, b) => (a.cached_at > b.cached_at ? a : b), lastCacheData[0]);
  const lastTime = newest.cached_at ? formatTime(newest.cached_at) : '';
- if (lastTime) updatedPart = `<span class="status-item"><span class="status-dot dot-green"></span>${t('last_update')} ${lastTime}</span>`;
+ if (lastTime) updatedPart = `<span class="status-item"><span class="status-dot dot-green" aria-hidden="true"></span>${t('last_update')} ${lastTime}</span>`;
  }
 
  statusBar.innerHTML = `
- <span class="status-item"><span class="status-dot dot-green"></span>${active}/${total} ${t('active_domains')}</span>
+ <span class="status-item"><span class="status-dot dot-green" aria-hidden="true"></span>${active}/${total} ${t('active_domains')}</span>
  ${updatedPart}
  <button class="btn-refresh" onclick="clickRefresh()">&#8635; ${t('refresh_btn')}</button>
  `;
@@ -2096,12 +2099,16 @@ async function setCycle(seconds) {
 
 function toggleApiKeyPopup() {
  const popup = $('apiKeyPopup');
- popup.style.display = popup.style.display === 'none' ? 'flex' : 'none';
+ const opening = popup.style.display === 'none';
+ popup.style.display = opening ? 'flex' : 'none';
+ if (opening) { popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'true'); setTimeout(() => DOM.apiKey.focus(), 10); }
+ else { $('btnApiKey').focus(); }
 }
 document.addEventListener('click', e => {
  const popup = $('apiKeyPopup');
  if (popup.style.display !== 'none' && !e.target.closest('#apiKeyPopup') && !e.target.closest('#btnApiKey')) {
  popup.style.display = 'none';
+ $('btnApiKey').focus();
  }
 });
 
@@ -2736,6 +2743,9 @@ function showLogoPopup(screenX, screenY) {
  closeEditPopup();
  const popup = document.createElement('div');
  popup.className = 'led-edit-popup';
+ popup.setAttribute('role', 'dialog');
+ popup.setAttribute('aria-modal', 'true');
+ popup.setAttribute('aria-label', 'Logo picker');
  popup.style.cssText += 'flex-direction:column;gap:8px;align-items:stretch;min-width:200px;';
  // Row 1: domain input + fetch button
  const row1 = document.createElement('div');
@@ -2793,6 +2803,16 @@ function showLogoPopup(screenX, screenY) {
  delBtn.addEventListener('click', e => { e.stopPropagation(); closeEditPopup(); deleteLogo(); });
  popup.addEventListener('mousedown', e => e.stopPropagation());
  popup.addEventListener('touchstart', e => e.stopPropagation());
+ popup.addEventListener('keydown', e => {
+ if (e.key === 'Escape') closeEditPopup();
+ if (e.key === 'Tab') {
+  const focusable = popup.querySelectorAll('input:not([type="file"]), button, label.btn-outline');
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+ }
+ });
  setTimeout(() => { document.addEventListener('mousedown', _onDocClickClose); document.addEventListener('touchstart', _onDocClickClose); }, 0);
 }
 
@@ -2872,7 +2892,7 @@ function openDataColorPicker(layoutKey, fallback) {
 function getColorKeyForElement(id, data) {
  if (id === 'label') return ['labelColor', '#ffffff'];
  if (id === 'value') return ['valueColor', '#ffffff'];
- if (id === 'country') return ['countryColor', '#666666'];
+ if (id === 'country') return ['countryColor', '#999999'];
  if (id === 'change') { const isUp = data && data.is_up; return [isUp ? 'changeUpColor' : 'changeDownColor', isUp ? '#00dc00' : '#ff2828']; }
  if (id === 'spark') { const isUp = data && data.is_up; return [isUp ? 'sparkUpColor' : 'sparkDownColor', isUp ? '#00c853' : '#ff2d55']; }
  return null;
