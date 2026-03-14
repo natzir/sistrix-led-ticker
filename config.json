@@ -22,6 +22,13 @@
       "active": true
     },
     {
+      "domain": "audi.es",
+      "country": "es",
+      "label": "AUDI",
+      "mode": "daily",
+      "active": true
+    },
+    {
       "domain": "civitatis.com",
       "country": "es",
       "label": "CVTS",
@@ -48,13 +55,6 @@
       "label": "YMV",
       "mode": "weekly",
       "active": false
-    },
-    {
-      "domain": "audi.es",
-      "country": "es",
-      "label": "AUDI",
-      "mode": "daily",
-      "active": true
     }
   ],
   "language": "es",
@@ -1379,16 +1379,16 @@
     "message": "Boost your SEO",
     "enabled": true,
     "layout": {
-      "logoX": 1,
-      "logoY": 1,
-      "logoSize": 16,
-      "nameX": 19,
+      "logoX": 2,
+      "logoY": 0,
+      "logoSize": 17,
+      "nameX": 23,
       "nameY": 6,
-      "nameH": 8,
+      "nameH": 7,
       "msgY": 19,
       "msgH": 13,
       "nameColor": "#ffffff",
-      "msgColor": "rainbow",
+      "msgColor": "#00c853",
       "msgSpeed": 60,
       "nameFont": "small",
       "msgFont": "small",
@@ -1399,13 +1399,13 @@
   },
   "data_layout": {
     "labelX": 1,
-    "labelY": 1,
+    "labelY": 0,
     "labelFont": "small",
     "labelH": null,
     "changeY": 0,
     "changeFont": "small",
     "changeH": null,
-    "changeX": 43,
+    "changeX": null,
     "valueX": 1,
     "valueY": 10,
     "valueFont": "large",
@@ -1420,7 +1420,7 @@
     "valueColor": "#ffffff",
     "changeUpColor": "#00dc00",
     "changeDownColor": "#ff2828",
-    "countryColor": "#666666",
+    "countryColor": "#999999",
     "sparkUpColor": "#00c853",
     "sparkDownColor": "#ff2d55",
     "changeScale": 1,
