@@ -803,7 +803,7 @@ def _build_index_html():
  .led-outer {
  background: var(--led-bg);
  border-radius: var(--radius-md);
- padding: var(--space-5);
+ padding: calc(var(--space-5) + 2px);
  box-shadow: 0 4px 24px var(--led-shadow), inset 0 1px 0 rgba(255,255,255,0.03);
  border: 1px solid var(--led-border);
  }
@@ -927,11 +927,11 @@ def _build_index_html():
  }
 
  @media (max-width:700px) {
- body { padding:var(--space-5); }
+ body { padding:var(--space-3); }
  .section { padding:var(--space-5); }
  .add-form { grid-template-columns:1fr 1fr; }
  .add-form > div:last-child { grid-column: 1 / -1; }
- .led-outer { padding:var(--space-4); }
+ .led-outer { padding:var(--space-2); }
  #ledCanvas { width:100% !important; height:auto !important; max-width:100%; display:block; }
  .led-controls { flex-wrap:wrap; justify-content:center; gap:var(--space-3); }
  .led-arrow { font-size:22px; padding:var(--space-2); }
