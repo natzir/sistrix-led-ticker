@@ -779,7 +779,7 @@ def _build_index_html():
  min-height: 100vh; padding: var(--space-7);
  overflow-x: hidden; max-width: 100vw;
  }
- h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:4px; color:var(--accent); margin-bottom:var(--space-4); }
+ h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:3px; color:var(--accent); margin-bottom:var(--space-4); }
  .subtitle { font-size:var(--text-sm); color:var(--dim); margin-bottom:var(--space-9); }
  .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); overflow:hidden; }
  .section-title, h2.section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; font-weight:normal; }
@@ -1289,7 +1289,7 @@ let rotateInterval = null;
 let cycleTime = 10000;
 
 // Data card layout (positions of each element on LED)
-const DEFAULT_DATA_LAYOUT = { labelX:1, labelY:0, labelFont:'small', labelH:null, labelScale:1, changeY:0, changeFont:'small', changeH:null, changeX:null, changeScale:1, valueX:1, valueY:10, valueFont:'large', valueH:null, valueScale:1, countryX:52, countryY:10, countryFont:'small', countryH:null, countryScale:1, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#999999', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
+const DEFAULT_DATA_LAYOUT = { labelX:2, labelY:1, labelFont:'small', labelH:null, labelScale:1, modeX:59, modeY:8, modeFont:'small', modeH:null, modeColor:'#999999', changeY:1, changeFont:'small', changeH:null, changeX:null, changeScale:1, valueX:2, valueY:10, valueFont:'large', valueH:null, valueScale:1, countryX:49, countryY:8, countryFont:'small', countryH:null, countryScale:1, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#444444', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
 let dataLayout = { ...DEFAULT_DATA_LAYOUT };
 let dataLayoutEditMode = false;
 
@@ -1314,20 +1314,27 @@ function drawLED(data) {
  const valueColor = (DL.valueColor||'#ffffff');
  const countryColor = (DL.countryColor||'#999999');
 
- // Label + mode
+ // Label
  const lh = DL.labelH;
  drawText(data.label, DL.labelX, DL.labelY, labelColor, DL.labelFont, lh);
- const labelW = measureText(data.label, DL.labelFont, lh);
+
+ // Mode (D/W) — independent element
  const modeChar = data.mode === 'daily' ? 'D' : 'W';
- drawText(modeChar, DL.labelX + labelW + 1, DL.labelY, countryColor, DL.labelFont, lh);
+ const mf = DL.modeFont || 'small';
+ const mh = DL.modeH;
+ const modeColor = (DL.modeColor||'#999999');
+ const labelW = measureText(data.label, DL.labelFont, lh);
+ const modeX = (DL.modeX != null) ? DL.modeX : (DL.labelX + labelW + 1);
+ drawText(modeChar, modeX, DL.modeY, modeColor, mf, mh);
 
  // Change %
  const cf = DL.changeFont || 'small';
  const ch = DL.changeH;
  const changeStr = (data.change_pct >= 0 ? '+' : '') + data.change_pct.toFixed(1) + '%';
  const changeW = measureText(changeStr, cf, ch);
- const changeX = (DL.changeX != null) ? DL.changeX : (LED_W - changeW - 1);
- drawText(changeStr, changeX, DL.changeY, changeColor, cf, ch);
+ const modeW = measureText(modeChar, mf, mh);
+ const changeRight = (DL.changeX != null) ? (DL.changeX + changeW) : (LED_W - 1);
+ drawText(changeStr, changeRight - changeW, DL.changeY, changeColor, cf, ch);
 
  // Value
  const vh = DL.valueH;
@@ -1339,7 +1346,9 @@ function drawLED(data) {
  // Country
  const ctf = DL.countryFont || 'small';
  const cth = DL.countryH;
- drawText(data.country.toUpperCase(), DL.countryX, DL.countryY, countryColor, ctf, cth);
+ const valueW = measureText(valueStr, DL.valueFont, vh);
+ const countryX = (DL.countryX != null) ? DL.countryX : (DL.valueX + valueW + 2);
+ drawText(data.country.toUpperCase(), countryX, DL.countryY, countryColor, ctf, cth);
 
  // Sparkline
  const history = [...data.history].reverse();
@@ -1500,6 +1509,10 @@ function parseFont(font) {
  return parsed;
 }
 const PF3x5 = parseFont(F3x5);
+// Custom narrow widths: [renderWidth, offsetFromLeft]
+const NARROW = { '.': [3, 1] };
+const NARROW_SM = {};
+const NARROW_SPACE = 2; // space width for both fonts (instead of full char width)
 const PF4x6 = parseFont(F4x6);
 const PF5x7 = parseFont(F5x7);
 
@@ -1618,14 +1631,19 @@ function drawText(text, x, y, color, size, h) {
  // Native size — fast path, no scaling
  for (let ci = 0; ci < str.length; ci++) {
  if (x >= LED_W) break;
- const bits = font[str[ci]] || font[stripAccents(str[ci])];
- if (!bits) { x += srcW + 1; continue; }
- if (x + srcW >= 0) {
+ const ch = str[ci];
+ const bits = font[ch] || font[stripAccents(ch)];
+ const nr = (isLarge ? NARROW : NARROW_SM)[ch];
+ const cw = nr ? nr[0] : srcW;
+ const off = nr ? nr[1] : 0;
+ if (ch === ' ') { x += NARROW_SPACE + 1; continue; }
+ if (!bits) { x += cw + 1; continue; }
+ if (x + cw >= 0) {
  for (let row = 0; row < srcH; row++)
- for (let col = 0; col < srcW; col++)
- if (bits[row * srcW + col]) drawPixel(x + col, y + row, isRainbow ? rainbowColor(x + col) : color);
+ for (let col = off; col < off + cw; col++)
+ if (bits[row * srcW + col]) drawPixel(x + col - off, y + row, isRainbow ? rainbowColor(x + col - off) : color);
  }
- x += srcW + 1;
+ x += cw + 1;
  }
  return;
  }
@@ -1657,7 +1675,16 @@ function measureText(text, size, h) {
  if (!isLarge && h && h >= 7) isLarge = true;
  const srcW = isLarge ? 5 : 3, srcH = isLarge ? 7 : 5;
  h = h || srcH;
- if (h === srcH) return str.length * (srcW + 1);
+ if (h === srcH) {
+ let w = 0;
+ for (let i = 0; i < str.length; i++) {
+  const c = str[i];
+  if (c === ' ') { w += NARROW_SPACE + 1; continue; }
+  const nr = (isLarge ? NARROW : NARROW_SM)[c];
+  w += (nr ? nr[0] : srcW) + 1;
+ }
+ return w;
+ }
  const charPxW = Math.round(srcW * h / srcH);
  const charStep = charPxW + Math.max(1, Math.round(h / srcH));
  return str.length * charStep;
@@ -1739,7 +1766,7 @@ function renderSlide() {
  drawLED(d);
  const status = DOM.previewStatus;
  if (d) {
- const info = `${d.domain.replace(/^https?:\/\//, '')} · ${d.type || 'domain'} · ${d.country.toUpperCase()} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')}`;
+ const info = `${d.domain.replace(/^https?:\/\//, '')} ${d.type || 'domain'} ${d.country.toUpperCase()} ${d.mode === 'daily' ? 'D' : 'W'}`;
  status.innerHTML = info;
  canvas.setAttribute('aria-label', `${d.label}: ${d.current_value ?? ''} - ${info}`);
  }
@@ -2923,20 +2950,28 @@ function getDataElementBounds(data) {
  if (!data) return [];
  const DL = dataLayout, bounds = [];
  const lf = DL.labelFont || 'small', lh = DL.labelH;
- const labelStr = data.label + ' ' + (data.mode === 'daily' ? 'D' : 'W');
- bounds.push({ id:'label', x:DL.labelX, y:DL.labelY, w:measureText(labelStr, lf, lh), h:textHeight(lf, lh), fx:'labelX', fy:'labelY', resizable:true, hKey:'labelH', font:lf, color:'#ffffff', overlayLabel:'LABEL' });
+ bounds.push({ id:'label', x:DL.labelX, y:DL.labelY, w:measureText(data.label, lf, lh), h:textHeight(lf, lh), fx:'labelX', fy:'labelY', resizable:true, hKey:'labelH', font:lf, color:'#ffffff', overlayLabel:'LABEL' });
+ const mf = DL.modeFont || 'small', mh = DL.modeH;
+ const modeChar = data.mode === 'daily' ? 'D' : 'W';
+ const labelW = measureText(data.label, lf, lh);
+ const modeX = (DL.modeX != null) ? DL.modeX : (DL.labelX + labelW + 1);
+ bounds.push({ id:'mode', x:modeX, y:DL.modeY, w:measureText(modeChar, mf, mh), h:textHeight(mf, mh), fx:'modeX', fy:'modeY', resizable:true, hKey:'modeH', font:mf, color:'#999999', overlayLabel:'MODE' });
  const cf = DL.changeFont || 'small', ch = DL.changeH;
  const changeStr = (data.change_pct >= 0 ? '+' : '') + data.change_pct.toFixed(1) + '%';
  const cw = measureText(changeStr, cf, ch);
- const changeX = (DL.changeX != null) ? DL.changeX : (LED_W - cw - 1);
+ const modeW = measureText(modeChar, mf, mh);
+ const changeRight = (DL.changeX != null) ? (DL.changeX + cw) : (LED_W - 1);
+ const changeX = changeRight - cw;
  bounds.push({ id:'change', x:changeX, y:DL.changeY, w:cw, h:textHeight(cf, ch), fx:'changeX', fy:'changeY', resizable:true, hKey:'changeH', font:cf, color:'#ffaa00', overlayLabel:'%' });
  const vf = DL.valueFont || 'large', valH = DL.valueH;
  let valueStr;
  if (data.current_value >= 100) valueStr = data.current_value.toFixed(1);
  else valueStr = data.current_value.toFixed(2);
- bounds.push({ id:'value', x:DL.valueX, y:DL.valueY, w:measureText(valueStr, vf, valH), h:textHeight(vf, valH), fx:'valueX', fy:'valueY', resizable:true, hKey:'valueH', font:vf, color:'#0a84ff', overlayLabel:'VALUE' });
+ const valW = measureText(valueStr, vf, valH);
+ bounds.push({ id:'value', x:DL.valueX, y:DL.valueY, w:valW, h:textHeight(vf, valH), fx:'valueX', fy:'valueY', resizable:true, hKey:'valueH', font:vf, color:'#0a84ff', overlayLabel:'VALUE' });
  const ctf = DL.countryFont || 'small', ctH = DL.countryH;
- bounds.push({ id:'country', x:DL.countryX, y:DL.countryY, w:measureText(data.country.toUpperCase(), ctf, ctH), h:textHeight(ctf, ctH), fx:'countryX', fy:'countryY', resizable:true, hKey:'countryH', font:ctf, color:'#888888', overlayLabel:'CC' });
+ const countryX = (DL.countryX != null) ? DL.countryX : (DL.valueX + valW + 2);
+ bounds.push({ id:'country', x:countryX, y:DL.countryY, w:measureText(data.country.toUpperCase(), ctf, ctH), h:textHeight(ctf, ctH), fx:'countryX', fy:'countryY', resizable:true, hKey:'countryH', font:ctf, color:'#888888', overlayLabel:'CC' });
  bounds.push({ id:'spark', x:1, y:DL.sparkY, w:LED_W-2, h:DL.sparkH, fx:null, fy:'sparkY', resizable:true, hKey:'sparkH', resizeMin:4, color:'#00c853', overlayLabel:'CHART' });
  return bounds;
 }
@@ -2946,6 +2981,7 @@ async function saveDataLayout() { await postJSON('/api/config/data_layout', data
 
 function getColorKeyForElement(id, data) {
  if (id === 'label') return ['labelColor', '#ffffff'];
+ if (id === 'mode') return ['modeColor', '#999999'];
  if (id === 'value') return ['valueColor', '#ffffff'];
  if (id === 'country') return ['countryColor', '#999999'];
  if (id === 'change') { const isUp = data && data.is_up; return [isUp ? 'changeUpColor' : 'changeDownColor', isUp ? '#00dc00' : '#ff2828']; }
