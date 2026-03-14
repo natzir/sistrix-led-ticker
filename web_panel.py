@@ -842,7 +842,7 @@ def index():
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
 
  .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; }
- .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; }
+ .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; }
  .status-bar .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
  .status-dot { display:inline-block; width:var(--space-3); height:var(--space-3); border-radius:50%; margin-right:var(--space-2); }
  .dot-green { background:var(--accent); }
@@ -925,7 +925,7 @@ def index():
  .led-edit-popup .edit-row { display:flex; gap:var(--space-4); align-items:center; }
  .led-edit-popup input[type="text"] { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:0 10px; border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); flex:1; outline:none; height:32px; box-sizing:border-box; }
  .led-edit-popup input[type="text"]:focus { border-color:var(--accent); }
- .led-edit-popup .btn-ok { background:var(--accent); color:var(--toast-text); border:none; border-radius:var(--radius-sm); padding:0 14px; font-family:inherit; font-size:var(--text-sm); cursor:pointer; font-weight:bold; flex-shrink:0; height:32px; box-sizing:border-box; }
+ .led-edit-popup .btn-ok { background:var(--accent); color:var(--toast-text); border:none; border-radius:var(--radius-sm); padding:0 var(--space-4); font-family:inherit; font-size:var(--text-xs); cursor:pointer; font-weight:bold; flex-shrink:0; height:34px; box-sizing:border-box; text-transform:uppercase; letter-spacing:1px; }
  .led-edit-popup .btn-ok:hover { opacity:0.85; }
  .led-edit-popup .color-grid { display:flex; flex-wrap:wrap; gap:4px; }
  .led-edit-popup .color-swatch { width:24px; height:24px; border-radius:var(--radius-sm); border:2px solid transparent; cursor:pointer; flex-shrink:0; transition:border-color 0.15s, transform 0.15s; position:relative; }
@@ -950,8 +950,10 @@ def index():
  .header-btn { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:var(--space-3) var(--space-4); border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; font-size:var(--text-sm); height:30px; display:inline-flex; align-items:center; box-sizing:border-box; }
  .header-btn:hover { border-color:var(--dim); }
  .header-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
- .apikey-popup { position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); display:flex; gap:var(--space-3); align-items:center; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,.3); }
- .apikey-popup input { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); }
+ .apikey-popup { position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); display:flex; gap:var(--space-3); align-items:center; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,.3); white-space:nowrap; }
+ .apikey-popup input { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); min-width:0; flex:1; }
+ .apikey-popup .btn { flex-shrink:0; }
+ @media (max-width:500px) { .apikey-popup { position:fixed; top:auto; bottom:var(--space-6); left:var(--space-4); right:var(--space-4); } }
 </style>
 </head>
 <body>
@@ -972,7 +974,7 @@ def index():
  <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">Add API</span>
  </button>
  <div id="apiKeyPopup" class="apikey-popup" style="display:none;">
- <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;">
+ <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;max-width:60vw;">
  <button class="btn btn-small" onclick="saveApiKey()" data-i18n="save">Save</button>
  </div>
  </div>
@@ -1002,7 +1004,7 @@ def index():
  <button id="btnPlayPause" onclick="toggleAutoRotate()" class="btn-outline active" aria-label="Toggle auto-rotation" style="min-width:70px;"><span id="domainCounter">&#9654; -/-</span></button>
  <div id="cycleBtns" role="group" aria-label="Rotation speed" style="display:flex;align-items:center;gap:4px;"></div>
  <div style="display:flex;gap:var(--space-3);margin-left:auto;">
- <button id="btnReset" onclick="resetCurrentLayout()" class="btn-outline" style="display:none;" data-i18n="reset">Reset</button>
+ <button id="btnReset" onclick="resetCurrentLayout()" class="btn-outline" style="display:none;" aria-label="Reset layout" title="Reset layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 9 9"/><polyline points="3 7 3 12 8 12"/></svg></button>
  <button id="btnEdit" onclick="toggleEdit()" class="btn-outline" data-i18n="edit">&#9998; Edit</button>
  </div>
  </div>
@@ -1046,7 +1048,7 @@ def index():
 // ===== I18N =====
 const I18N = {
  es: { sim_title:'Panel',
- last_update:'Última comprobación:', refresh_btn:'Actualizar', apikey_placeholder:'Tu API key de SISTRIX', save:'Guardar API Key',
+ last_update:'Última comprobación:', refresh_btn:'Actualizar', apikey_placeholder:'Tu API key de SISTRIX', save:'Guardar',
  domains_title:'Direcciones', domain:'Dominio', country:'País', mode:'Modo', type:'Tipo', address:'Dirección',
  domain_placeholder:'ejemplo.com', add:'+ Añadir', active_domains:'direcciones activas',
  loading_data:'Cargando datos de SISTRIX...', added:'Añadido',
@@ -1055,12 +1057,12 @@ const I18N = {
  data_updated:'Datos actualizados desde API', error_update:'Error al actualizar',
  confirm_delete:'¿Eliminar?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Solo recarga los días que faltan · Clic para confirmar', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', loading_data_short:'Cargando datos...',
  cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener favicon', brand_or:'o', brand_saved:'Marca guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
- edit:'\u270E Editar', done_editing:'\u2713 Listo', reset:'Reset', edit_hint_touch:'Mantén pulsado para editar texto/color',
+ edit:'\u270E Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  },
  en: { sim_title:'Panel',
- last_update:'Last check:', refresh_btn:'Refresh', apikey_placeholder:'Your SISTRIX API key', save:'Save API Key',
+ last_update:'Last check:', refresh_btn:'Refresh', apikey_placeholder:'Your SISTRIX API key', save:'Save',
  domains_title:'Addresses', domain:'Domain', country:'Country', mode:'Mode', type:'Type', address:'Address',
  domain_placeholder:'example.com', add:'+ Add', active_domains:'active addresses',
  loading_data:'Loading SISTRIX data...', added:'Added',
@@ -1069,12 +1071,12 @@ const I18N = {
  data_updated:'Data updated from API', error_update:'Update error',
  confirm_delete:'Delete?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Only fetches missing days · Click to confirm', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', loading_data_short:'Loading data...',
  cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Get favicon', brand_or:'or', brand_saved:'Brand saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
- edit:'\u270E Edit', done_editing:'\u2713 Done', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
+ edit:'\u270E Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
  },
  fr: { sim_title:'Panel',
- last_update:'Dernière vérif.:', refresh_btn:'Actualiser', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer API Key',
+ last_update:'Dernière vérif.:', refresh_btn:'Actualiser', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer',
  domains_title:'Adresses', domain:'Domaine', country:'Pays', mode:'Mode', type:'Type', address:'Adresse',
  domain_placeholder:'exemple.com', add:'+ Ajouter', active_domains:'adresses actives',
  loading_data:'Chargement des données SISTRIX...', added:'Ajouté',
@@ -1083,12 +1085,12 @@ const I18N = {
  data_updated:'Données mises à jour depuis l\\'API', error_update:'Erreur de mise à jour',
  confirm_delete:'Supprimer ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ne recharge que les jours manquants · Cliquez pour confirmer', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', loading_data_short:'Chargement...',
  cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir favicon', brand_or:'ou', brand_saved:'Marque enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
- edit:'\u270E Éditer', done_editing:'\u2713 Terminé', reset:'Reset', edit_hint_touch:'Appui long pour éditer texte/couleur',
+ edit:'\u270E Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
  },
  it: { sim_title:'Panel',
- last_update:'Ultimo controllo:', refresh_btn:'Aggiorna', apikey_placeholder:'La tua API key SISTRIX', save:'Salva API Key',
+ last_update:'Ultimo controllo:', refresh_btn:'Aggiorna', apikey_placeholder:'La tua API key SISTRIX', save:'Salva',
  domains_title:'Indirizzi', domain:'Dominio', country:'Paese', mode:'Modalità', type:'Tipo', address:'Indirizzo',
  domain_placeholder:'esempio.com', add:'+ Aggiungi', active_domains:'indirizzi attivi',
  loading_data:'Caricamento dati SISTRIX...', added:'Aggiunto',
@@ -1097,12 +1099,12 @@ const I18N = {
  data_updated:'Dati aggiornati dall\\'API', error_update:'Errore di aggiornamento',
  confirm_delete:'Eliminare?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Ricarica solo i giorni mancanti · Clicca per confermare', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', loading_data_short:'Caricamento...',
  cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni favicon', brand_or:'o', brand_saved:'Marca salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
- edit:'\u270E Modifica', done_editing:'\u2713 Fatto', reset:'Reset', edit_hint_touch:'Tieni premuto per modificare testo/colore',
+ edit:'\u270E Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
  },
  de: { sim_title:'Panel',
- last_update:'Letzte Prüfung:', refresh_btn:'Aktualisieren', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'API Key speichern',
+ last_update:'Letzte Prüfung:', refresh_btn:'Aktualisieren', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'Speichern',
  domains_title:'Adressen', domain:'Domain', country:'Land', mode:'Modus', type:'Typ', address:'Adresse',
  domain_placeholder:'beispiel.de', add:'+ Hinzufügen', active_domains:'aktive Adressen',
  loading_data:'Lade SISTRIX-Daten...', added:'Hinzugefügt',
@@ -1111,12 +1113,12 @@ const I18N = {
  data_updated:'Daten von API aktualisiert', error_update:'Fehler beim Aktualisieren',
  confirm_delete:'Löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Lädt nur fehlende Tage nach · Klicken zum Bestätigen', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', loading_data_short:'Lade Daten...',
  cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Favicon laden', brand_or:'oder', brand_saved:'Marke gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
- edit:'\u270E Bearbeiten', done_editing:'\u2713 Fertig', reset:'Reset', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
+ edit:'\u270E Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
  },
  pt: { sim_title:'Panel',
- last_update:'Última verificação:', refresh_btn:'Atualizar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar API Key',
+ last_update:'Última verificação:', refresh_btn:'Atualizar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar',
  domains_title:'Endereços', domain:'Domínio', country:'País', mode:'Modo', type:'Tipo', address:'Endereço',
  domain_placeholder:'exemplo.com', add:'+ Adicionar', active_domains:'endereços ativos',
  loading_data:'A carregar dados SISTRIX...', added:'Adicionado',
@@ -1125,7 +1127,7 @@ const I18N = {
  data_updated:'Dados atualizados da API', error_update:'Erro ao atualizar',
  confirm_delete:'Eliminar?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Só recarrega os dias em falta · Clique para confirmar', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', loading_data_short:'A carregar dados...',
  cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter favicon', brand_or:'ou', brand_saved:'Marca guardada', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
- edit:'\u270E Editar', done_editing:'\u2713 Pronto', reset:'Reset', edit_hint_touch:'Mantém pressionado para editar texto/cor',
+ edit:'\u270E Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  },
@@ -1721,7 +1723,7 @@ function clickRefresh() {
  btn.innerHTML = `${t('refresh_confirm_short')}${creditsInfo}`;
  btn.style.borderColor = 'var(--accent)';
  btn.style.color = 'var(--accent)';
- _refreshTimer = setTimeout(() => { _refreshArmed = false; btn.innerHTML = `&#8635; ${t('refresh_btn')}`; btn.style.borderColor = ''; btn.style.color = ''; }, 4000);
+ _refreshTimer = setTimeout(() => { _refreshArmed = false; btn.innerHTML = `${t('refresh_btn')}`; btn.style.borderColor = ''; btn.style.color = ''; }, 4000);
  return;
  }
  clearTimeout(_refreshTimer);
@@ -1741,7 +1743,7 @@ async function doRefresh() {
  } catch(e) {
  toast(t('error_update'));
  }
- if (btn) { btn.disabled = false; btn.innerHTML = `&#8635; ${t('refresh_btn')}`; }
+ if (btn) { btn.disabled = false; btn.innerHTML = `${t('refresh_btn')}`; }
 }
 
 async function loadCacheStatus() {
@@ -1806,7 +1808,7 @@ function updateStatusBar() {
  statusBar.innerHTML = `
  <span class="status-item"><span class="status-dot dot-green" aria-hidden="true"></span>${active}/${total} ${t('active_domains')}</span>
  ${updatedPart}
- <button class="btn-refresh" onclick="clickRefresh()">&#8635; ${t('refresh_btn')}</button>
+ <button class="btn-refresh" onclick="clickRefresh()">${t('refresh_btn')}</button>
  `;
 }
 
@@ -2007,7 +2009,7 @@ function editDomain(i) {
  <div class="edit-row">
   <div id="ed-country-${i}" class="custom-select" style="width:70px;flex-shrink:0;"></div>
   <div id="ed-mode-${i}" class="custom-select" style="width:90px;flex-shrink:0;"></div>
-  <button class="btn btn-small" onclick="saveDomainEdit(${i})" style="flex:0 0 auto;">OK</button>
+  <button class="btn btn-small" onclick="saveDomainEdit(${i})" style="flex:0 0 auto;" data-i18n="save">${t('save')}</button>
   <button class="btn-icon btn-icon-danger" onclick="cancelEdit()" aria-label="Cancel" style="flex:0 0 auto;">✕</button>
  </div>
  </div>
@@ -2086,7 +2088,7 @@ async function addDomain() {
  toast(t('added'));
 }
 
-const CYCLE_OPTIONS = [5, 10, 15, 30];
+const CYCLE_OPTIONS = [5, 10, 15];
 function renderCycleBtns() {
  const html = CYCLE_OPTIONS.map(s =>
  `<button class="btn-outline${cycleTime === s * 1000 ? ' active' : ''}" onclick="setCycle(${s})" aria-pressed="${cycleTime === s * 1000}">${s}s</button>`
@@ -2634,7 +2636,7 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  row.appendChild(inp);
  const okBtn = document.createElement('button');
  okBtn.className = 'btn-ok';
- okBtn.textContent = '\u2713';
+ okBtn.textContent = t('save');
  row.appendChild(okBtn);
  popup.appendChild(row);
  }
@@ -2960,7 +2962,7 @@ function toggleEdit() {
  closeEditPopup();
  if (layoutEditMode) brandEditor.exit();
  if (dataLayoutEditMode) dataEditor.exit();
- btn.classList.remove('active'); btn.textContent = t('edit');
+ btn.className = 'btn-outline'; btn.textContent = t('edit');
  resetBtn.style.display = 'none';
  btnPrev.disabled = false; btnNext.disabled = false; btnPlay.disabled = false;
  renderSlide();
@@ -2969,7 +2971,7 @@ function toggleEdit() {
  if (isBrandSlide() && !brandData.enabled) {
  toggleBrandEnabled().then(() => {
  brandEditor.enter();
- btn.classList.add('active'); btn.textContent = t('done_editing');
+ btn.className = 'btn btn-small'; btn.textContent = t('done_editing');
  resetBtn.style.display = '';
  btnPrev.disabled = true; btnNext.disabled = true; btnPlay.disabled = true;
  });
@@ -2980,7 +2982,7 @@ function toggleEdit() {
  } else {
  dataEditor.enter();
  }
- btn.classList.add('active'); btn.textContent = t('done_editing');
+ btn.className = 'btn btn-small'; btn.textContent = t('done_editing');
  resetBtn.style.display = '';
  btnPrev.disabled = true; btnNext.disabled = true; btnPlay.disabled = true;
  }
