@@ -1605,7 +1605,7 @@ function renderSlide() {
 
  if (isBrandSlide()) {
  showingBrand = true;
- const brandLabel = brandData.name || t('brand_title');
+ const brandLabel = t('brand_title');
  const toggleOn = brandData.enabled;
  if (toggleOn) {
  drawBrandCard();
@@ -1620,7 +1620,7 @@ function renderSlide() {
  drawLED(d);
  const status = DOM.previewStatus;
  if (d) {
- status.innerHTML = d.domain;
+ status.innerHTML = `${d.domain} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')} · ${d.country.toUpperCase()}`;
  }
  }
 }
@@ -1993,6 +1993,7 @@ async function loadBrand() {
  const v = brandLayout[id] ?? '';
  BL[id].value = typeof v === 'number' ? String(v) : v;
  });
+    renderCurrent();
  } catch(e) {}
 }
 
@@ -2016,7 +2017,7 @@ function previewBrandCard() {
  startMessageScroll();
  const total = totalSlides();
  DOM.domainCounter.innerHTML = `${autoRotate ? '&#9654;' : '&#9646;&#9646;'} ${currentIndex + 1}/${total}`;
- DOM.previewStatus.innerHTML = `${brandData.name || t('brand_title')} <button class="toggle-btn toggle-sm on" onclick="toggleBrandEnabled()" aria-label="${t('disable')}" role="switch" aria-checked="true"></button>`;
+ DOM.previewStatus.innerHTML = `${t('brand_title')} <button class="toggle-btn toggle-sm on" onclick="toggleBrandEnabled()" aria-label="${t('disable')}" role="switch" aria-checked="true"></button>`;
  DOM.ledOuter.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
