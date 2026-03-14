@@ -798,7 +798,7 @@ def index():
  /* Icon buttons (delete, cancel, small actions) */
  .btn-icon {
  display:inline-flex; align-items:center; justify-content:center;
- width:44px; height:44px; border-radius:var(--radius-sm);
+ width:34px; height:34px; border-radius:var(--radius-sm); position:relative;
  border:1px solid transparent; background:none; padding:0; flex-shrink:0;
  cursor:pointer; font-family:inherit; font-size:var(--text-sm);
  transition:all 0.2s; opacity:0.4;
@@ -807,6 +807,7 @@ def index():
  .btn-icon:focus-visible { opacity:1; outline:2px solid var(--accent); outline-offset:2px; }
  .btn-icon-danger { color:var(--red); }
  .btn-icon-danger:hover { background:var(--red); color:white; opacity:1; border-color:var(--red); }
+ @media (hover:none) { .btn-icon::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:44px; height:44px; } }
  .btn-icon-muted { color:var(--dim); }
  .btn-icon-muted:hover { color:var(--text); background:var(--hover); border-color:var(--border); }
 
