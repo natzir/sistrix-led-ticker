@@ -73,7 +73,7 @@ def read_cache(label, country, mode):
         try:
             with open(path) as f:
                 return json.load(f)
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             pass
     return None
 
@@ -147,20 +147,16 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
         cached = read_cache(label, country, mode)
         if cached:
             if refresh:
-                # User clicked Refresh: only re-fetch if data itself is old
                 if cache_is_fresh(cached, mode, skip_time_check=True):
-                    cached["_from_cache"] = True
-                    return cached
+                    return {**cached, "_from_cache": True}
             elif cache_is_fresh(cached, mode):
-                cached["_from_cache"] = True
-                return cached
+                return {**cached, "_from_cache": True}
 
     # No API key, return cache only (if available)
     if not api_key or api_key == "TU_API_KEY_AQUI":
-        cached = read_cache(label, country, mode)
+        cached = cached if not force else read_cache(label, country, mode)
         if cached:
-            cached["_from_cache"] = True
-            return cached
+            return {**cached, "_from_cache": True}
         return None
 
     # Call the API — address_object: domain, host, path, or url
@@ -181,7 +177,8 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
         resp.raise_for_status()
         data = resp.json()
 
-        entries = data.get("answer", [{}])[0].get("sichtbarkeitsindex", [])
+        answer = data.get("answer") or []
+        entries = answer[0].get("sichtbarkeitsindex", []) if answer else []
         if not entries:
             return read_cache(label, country, mode)
 
@@ -214,8 +211,7 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
         print(f"[API ERROR] {domain}: {e}")
         cached = read_cache(label, country, mode)
         if cached:
-            cached["_from_cache"] = True
-            return cached
+            return {**cached, "_from_cache": True}
         return None
 
 
@@ -231,7 +227,7 @@ def get_config():
 @app.route("/api/config/display", methods=["POST"])
 def update_display():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     if "brightness" in data:
         config["display"]["brightness"] = max(10, min(100, int(data["brightness"])))
     if "cycle_seconds" in data:
@@ -251,7 +247,7 @@ def get_data_layout():
 @app.route("/api/config/data_layout", methods=["POST"])
 def update_data_layout():
     config = load_config()
-    config["data_layout"] = request.json
+    config["data_layout"] = request.get_json(silent=True) or {}
     save_config(config)
     return jsonify({"ok": True})
 
@@ -265,7 +261,7 @@ def get_domains():
 @app.route("/api/domains", methods=["POST"])
 def add_domain():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     required = ["domain", "country", "label"]
     for field in required:
         if field not in data:
@@ -282,7 +278,7 @@ def add_domain():
         "type": addr_type,
         "active": data.get("active", True),
     }
-    config["domains"].append(new_domain)
+    config.setdefault("domains", []).append(new_domain)
     save_config(config)
     return jsonify({"ok": True, "domain": new_domain})
 
@@ -299,7 +295,7 @@ def update_domain(index):
     config = load_config()
     if not get_domain_or_404(config, index):
         return jsonify({"error": "Invalid index"}), 404
-    data = request.json
+    data = request.get_json(silent=True) or {}
     domain = config["domains"][index]
     for key in ["active", "mode", "label", "domain", "country", "type"]:
         if key in data:
@@ -340,7 +336,7 @@ def toggle_domain(index):
 @app.route("/api/domains/reorder", methods=["POST"])
 def reorder_domains():
     config = load_config()
-    order = request.json.get("order", [])
+    order = (request.get_json(silent=True) or {}).get("order", [])
     domains = config.get("domains", [])
     if sorted(order) != list(range(len(domains))):
         return jsonify({"error": "Invalid order"}), 400
@@ -434,7 +430,7 @@ def _parse_sistrix_credits(api_response):
 @app.route("/api/apikey", methods=["POST"])
 def update_api_key():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     if "api_key" not in data:
         return jsonify({"error": "Missing api_key"}), 400
     key = data["api_key"].strip()
@@ -486,7 +482,7 @@ def get_credits():
 @app.route("/api/theme", methods=["POST"])
 def update_theme():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     theme = data.get("theme", "dark")
     if theme in ("dark", "light"):
         config["theme"] = theme
@@ -504,7 +500,7 @@ def get_brand():
 @app.route("/api/brand", methods=["POST"])
 def update_brand():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     if "brand" not in config:
         config["brand"] = {}
     for key in ["name", "message", "enabled", "layout", "logo_pixels", "logo_source"]:
@@ -517,7 +513,7 @@ def update_brand():
 @app.route("/api/brand/favicon", methods=["POST"])
 def fetch_favicon():
     """Fetches favicon from a domain URL and converts to 16x16 pixel grid."""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     url = data.get("url", "").strip()
     if not url:
         return jsonify({"error": "No URL"}), 400
@@ -607,7 +603,7 @@ def fetch_favicon():
 @app.route("/api/language", methods=["POST"])
 def update_language():
     config = load_config()
-    data = request.json
+    data = request.get_json(silent=True) or {}
     lang = data.get("language", "en")
     if lang in ("es", "en", "fr", "it", "de", "pt"):
         config["language"] = lang
@@ -3157,7 +3153,8 @@ function initCustomSelect(container, options, defaultVal) {
  _activeIdx = newIdx;
  items[_activeIdx].classList.add('highlighted');
  items[_activeIdx].scrollIntoView({block:'nearest'});
- trigger.setAttribute('aria-activedescendant', '');
+ items[_activeIdx].id = items[_activeIdx].id || ('opt-' + Math.random().toString(36).slice(2,8));
+ trigger.setAttribute('aria-activedescendant', items[_activeIdx].id);
  }
 
  function positionDropdown() {
