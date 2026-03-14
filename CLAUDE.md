@@ -73,14 +73,19 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - Modo simulación (guarda PNG) si no hay hardware LED conectado
 
 ### web_panel.py
-- Web panel completo en http://raspberrypi.local:5000
+- Web panel completo en http://raspberrypi.local:5001 (puerto 5001)
 - **Simulador LED**: réplica visual del panel 64x32 con efecto LED (puntos circulares + glow), rotación automática, controles ◀ ▶
+- **Brand card**: tarjeta personalizada con logo (favicon o upload), nombre y mensaje con scroll animado (requestAnimationFrame)
+- **Layout editor**: editar posición y tamaño de elementos arrastrando/redimensionando (4 esquinas), doble-clic para editar texto/color
 - **Gestión de dominios**: añadir, eliminar, activar/desactivar, cambiar modo weekly/daily
-- **API key**: configurar y guardar
+- **API key**: configurar y guardar (validación contra endpoint /credits)
 - **Display settings**: brillo, velocidad rotación, frecuencia refresco
 - **Caché status**: ver estado de datos cacheados (fresco/caducado/hace cuánto)
+- **i18n**: 6 idiomas (es, en, fr, it, de, pt)
 - **API REST**: todos los endpoints en /api/* para gestión programática
-- UI dark monospace (estilo terminal/hacker, coherente con el concepto LED)
+- Canvas double-buffering (offscreen canvas → visible canvas blit)
+- UI dark monospace con design tokens CSS (spacing, radius, colors)
+- Responsive: funciona en desktop y mobile (touch events)
 
 ### config.json
 ```json
@@ -103,13 +108,14 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 1. ✅ Pi configurada y accesible por SSH
 2. ✅ rgbmatrix instalada (via pip editable desde ~/rpi-rgb-led-matrix)
 3. ✅ Pillow y requests instalados
-4. ✅ Archivos del proyecto creados (display.py, web_panel.py, config.json, setup.sh)
-5. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
-6. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
-7. ⬜ Configurar API key SISTRIX en el web panel — PENDIENTE
-8. ⬜ Probar preview en browser — PENDIENTE
-9. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
-10. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
+4. ✅ Archivos del proyecto creados y funcionando localmente
+5. ✅ Web panel probado en browser (simulador LED funcional)
+6. ✅ API key SISTRIX configurada y validada
+7. ✅ Repositorio git inicializado
+8. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
+9. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
+10. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
+11. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
 
 ## Notas para desarrollo
 
@@ -120,6 +126,9 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - Las fuentes usadas son DejaVu Sans Mono (ya instaladas en Raspberry Pi OS)
 - El web panel sirve todo el HTML/CSS/JS inline (single-file Flask app, sin archivos estáticos)
 - El simulador LED en el browser usa Canvas API con renderizado pixel-art (image-rendering: pixelated)
+- **IMPORTANTE**: No usar regex para modificar strings i18n del JS (riesgo de romper sintaxis). Usar Edit linea a linea.
+- **IMPORTANTE**: Hacer `git commit` antes de refactorizaciones grandes
+- Para desarrollo local: `python3 web_panel.py` sirve en puerto 5001
 
 ## Próximos pasos posibles
 

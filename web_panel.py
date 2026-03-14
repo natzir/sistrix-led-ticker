@@ -123,6 +123,7 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
     country = domain_config["country"]
     label = domain_config["label"]
     mode = domain_config.get("mode", "weekly")
+    addr_type = domain_config.get("type", "domain")
 
     # Try cache first
     if not force:
@@ -145,11 +146,11 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
             return cached
         return None
 
-    # Call the API
+    # Call the API — address_object: domain, host, path, or url
     url = "https://api.sistrix.com/domain.sichtbarkeitsindex"
     params = {
         "api_key": api_key,
-        "domain": domain,
+        addr_type: domain,
         "country": country,
         "format": "json",
     }
@@ -253,11 +254,15 @@ def add_domain():
         if field not in data:
             return jsonify({"error": f"Missing field: {field}"}), 400
 
+    addr_type = data.get("type", "domain")
+    if addr_type not in ("domain", "host", "path", "url"):
+        addr_type = "domain"
     new_domain = {
         "domain": data["domain"].strip().lower(),
         "country": data["country"].strip().lower(),
         "label": data["label"].strip().upper()[:8],
         "mode": data.get("mode", "weekly"),
+        "type": addr_type,
         "active": data.get("active", True),
     }
     config["domains"].append(new_domain)
@@ -279,11 +284,13 @@ def update_domain(index):
         return jsonify({"error": "Invalid index"}), 404
     data = request.json
     domain = config["domains"][index]
-    for key in ["active", "mode", "label", "domain", "country"]:
+    for key in ["active", "mode", "label", "domain", "country", "type"]:
         if key in data:
             if key == "active":
                 domain[key] = bool(data[key])
             elif key == "mode" and data[key] in ("weekly", "daily"):
+                domain[key] = data[key]
+            elif key == "type" and data[key] in ("domain", "host", "path", "url"):
                 domain[key] = data[key]
             elif key == "label":
                 domain[key] = data[key].strip().upper()[:8]
@@ -312,6 +319,17 @@ def toggle_domain(index):
     save_config(config)
     return jsonify({"ok": True, "domain": config["domains"][index]})
 
+
+@app.route("/api/domains/reorder", methods=["POST"])
+def reorder_domains():
+    config = load_config()
+    order = request.json.get("order", [])
+    domains = config.get("domains", [])
+    if sorted(order) != list(range(len(domains))):
+        return jsonify({"error": "Invalid order"}), 400
+    config["domains"] = [domains[i] for i in order]
+    save_config(config)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/preview", methods=["GET"])
@@ -343,6 +361,7 @@ def get_preview_data():
                     "domain": d["domain"],
                     "country": d["country"],
                     "mode": d.get("mode", "weekly"),
+                    "type": d.get("type", "domain"),
                     "current_value": data["current_value"],
                     "change_pct": round(change, 1),
                     "is_up": data["current_value"] >= data.get("previous_value", 0),
@@ -680,10 +699,11 @@ def index():
  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
  background: var(--bg); color: var(--text);
  min-height: 100vh; padding: var(--space-7);
+ overflow-x: hidden; max-width: 100vw;
  }
  h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:4px; color:var(--accent); margin-bottom:var(--space-4); }
  .subtitle { font-size:var(--text-sm); color:var(--dim); margin-bottom:var(--space-9); }
- .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); }
+ .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); overflow:hidden; }
  .section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; }
 
  /* ===== LED SIMULATOR ===== */
@@ -723,18 +743,26 @@ def index():
  border-radius: var(--space-1);
  }
  .led-controls {
- display:flex; gap:var(--space-3); align-items:center; font-size:var(--text-sm); color:var(--dim);
+ display:flex; gap:var(--space-3); align-items:center; font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-3);
  }
  .led-info { font-size:var(--text-sm); color:var(--dim); }
  /* Domain cards */
  .domain-card {
  display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4) var(--space-5);
  border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-4); transition:all 0.2s;
+ min-width:0;
  }
  .domain-card.inactive { opacity:0.4; }
  .domain-card:hover { border-color:var(--hover); }
  .domain-label { font-size:var(--text-base); font-weight:bold; min-width:70px; }
- .domain-info { flex:1; font-size:var(--text-sm); color:var(--dim); }
+ .domain-info { flex:1; font-size:var(--text-sm); color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .domain-type-tag { font-size:var(--text-xs); color:var(--blue); opacity:0.8; text-transform:uppercase; flex-shrink:0; }
+ .domain-country-tag { font-size:var(--text-xs); color:#ff9500; opacity:0.8; text-transform:uppercase; flex-shrink:0; }
+ .drag-handle { cursor:grab; color:var(--dim); font-size:var(--text-base); user-select:none; padding:0 var(--space-1); flex-shrink:0; opacity:0.4; transition:opacity 0.2s; line-height:1; }
+ .drag-handle:hover { opacity:1; }
+ .drag-handle:active { cursor:grabbing; }
+ .domain-card.dragging { opacity:0.4; border-style:dashed; }
+ .domain-card.drag-over { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
  .domain-mode {
  font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); text-transform:uppercase;
  letter-spacing:1px; cursor:pointer; border:none; font-family:inherit;
@@ -778,7 +806,7 @@ def index():
  /* Outline button variant */
  .btn-outline {
  background:var(--surface); border:1px solid var(--border); color:var(--text);
- padding:0 var(--space-4); border-radius:var(--radius-sm); height:30px; min-width:30px;
+ padding:0 var(--space-4); border-radius:var(--radius-sm); height:34px; min-width:34px;
  display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
  cursor:pointer; font-family:inherit; font-size:var(--text-sm); transition:all 0.2s;
  }
@@ -792,10 +820,10 @@ def index():
  .clickable:hover { color:var(--accent); }
 
  /* Add form */
- .add-form { display:grid; grid-template-columns:1fr 160px 80px 100px auto; gap:var(--space-4); align-items:end; margin-top:var(--space-6); }
+ .add-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:var(--space-4); align-items:end; margin-top:var(--space-6); }
  .add-form label { font-size:var(--text-xs); color:var(--dim); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:var(--space-2); }
  .add-form input, .add-form select {
- background:var(--surface-sunken); border:1px solid var(--border); color:var(--text);
+ background-color:var(--surface-sunken); border:1px solid var(--border); color:var(--text);
  padding:0 var(--space-4); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); width:100%; height:34px; box-sizing:border-box;
  }
  .add-form input:focus, .add-form select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px var(--focus-ring); }
@@ -803,7 +831,7 @@ def index():
  .btn { background:var(--accent); color:black; border:none; padding:0 var(--space-5); border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; font-weight:bold; font-size:var(--text-xs); text-transform:uppercase; letter-spacing:1px; height:34px; min-width:70px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; }
  .btn:hover { background:var(--accent-hover); }
  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
- .btn-small { height:28px; min-width:50px; padding:0 var(--space-4); }
+ .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
 
  .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; }
  .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; }
@@ -822,17 +850,20 @@ def index():
  @media (max-width:700px) {
  body { padding:var(--space-5); }
  .section { padding:var(--space-5); }
- .add-form { grid-template-columns:1fr; }
+ .add-form { grid-template-columns:1fr 1fr; }
+ .add-form > div:last-child { grid-column: 1 / -1; }
  .settings-grid { grid-template-columns:1fr; }
  .led-outer { padding:var(--space-4); }
  #ledCanvas { width:100% !important; height:auto !important; max-width:100%; display:block; }
  .led-controls { flex-wrap:wrap; justify-content:center; gap:var(--space-3); }
  .led-arrow { font-size:22px; padding:var(--space-2); }
- .domain-card { gap:var(--space-3); padding:var(--space-4); }
+ .domain-card { gap:var(--space-3); padding:var(--space-4); flex-wrap:wrap; }
  .domain-label { min-width:auto; font-size:var(--text-sm); }
- .domain-info { min-width:0; font-size:var(--text-xs); }
+ .domain-info { min-width:0; font-size:var(--text-xs); max-width:calc(100vw - 200px); }
  .domain-mode { padding:var(--space-2) var(--space-4); font-size:var(--text-xs); min-height:36px; display:inline-flex; align-items:center; }
  .section .btn { width:100%; text-align:center; }
+ .edit-row .btn, .edit-row .btn-icon { width:auto; flex:0 0 auto; }
+ .edit-row .btn-icon { width:34px; height:34px; }
  .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:var(--space-5); }
  }
  /* Custom dropdown (countries) */
@@ -882,10 +913,10 @@ def index():
 
  /* Inline edit popup for canvas elements */
  .led-edit-popup { position:fixed; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:0 8px 32px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:var(--space-3); min-width:240px; max-width:320px; }
- .led-edit-popup .edit-row { display:flex; gap:var(--space-3); align-items:center; }
- .led-edit-popup input[type="text"] { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); flex:1; outline:none; }
+ .led-edit-popup .edit-row { display:flex; gap:var(--space-4); align-items:center; }
+ .led-edit-popup input[type="text"] { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:0 10px; border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); flex:1; outline:none; height:32px; box-sizing:border-box; }
  .led-edit-popup input[type="text"]:focus { border-color:var(--accent); }
- .led-edit-popup .btn-ok { background:var(--accent); color:var(--toast-text); border:none; border-radius:var(--radius-sm); padding:6px 14px; font-family:inherit; font-size:var(--text-sm); cursor:pointer; font-weight:bold; flex-shrink:0; }
+ .led-edit-popup .btn-ok { background:var(--accent); color:var(--toast-text); border:none; border-radius:var(--radius-sm); padding:0 14px; font-family:inherit; font-size:var(--text-sm); cursor:pointer; font-weight:bold; flex-shrink:0; height:32px; box-sizing:border-box; }
  .led-edit-popup .btn-ok:hover { opacity:0.85; }
  .led-edit-popup .color-grid { display:flex; flex-wrap:wrap; gap:4px; }
  .led-edit-popup .color-swatch { width:24px; height:24px; border-radius:var(--radius-sm); border:2px solid transparent; cursor:pointer; flex-shrink:0; transition:border-color 0.15s, transform 0.15s; }
@@ -898,8 +929,9 @@ def index():
 
  /* Reusable form classes */
  .layout-input { width:100%; background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); text-align:center; height:34px; box-sizing:border-box; }
- .edit-grid { display:grid; grid-template-columns:70px 1fr 90px; gap:var(--space-3); width:100%; align-items:center; }
- .edit-input { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; }
+ .edit-grid { display:flex; flex-direction:column; gap:var(--space-3); width:100%; }
+ .edit-row { display:flex; gap:var(--space-4); align-items:center; }
+ .edit-input { background-color:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; height:34px; box-sizing:border-box; font-size:var(--text-sm); }
 
  /* Brand card */
  .social-link { color:var(--dim); display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; }
@@ -985,10 +1017,11 @@ def index():
  <div class="section-title" data-i18n="domains_title">Domains</div>
  <div id="domainList"></div>
  <div class="add-form">
- <div><label for="newDomain" data-i18n="domain">Domain</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder"></div>
- <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select" role="listbox" aria-label="Country"></div></div>
  <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8"></div>
- <div><label for="newMode" data-i18n="mode">Mode</label><select id="newMode"><option value="weekly" data-i18n="mode_weekly">Weekly</option><option value="daily" data-i18n="mode_daily">Daily</option></select></div>
+ <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder"></div>
+ <div><label for="newType" data-i18n="type">Type</label><div id="newType" class="custom-select" role="listbox" aria-label="Type"></div></div>
+ <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select" role="listbox" aria-label="Country"></div></div>
+ <div><label for="newMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select" role="listbox" aria-label="Mode"></div></div>
  <div><label>&nbsp;</label><button class="btn" onclick="addDomain()" data-i18n="add">+ Add</button></div>
  </div>
  </div>
@@ -1003,8 +1036,8 @@ def index():
 const I18N = {
  es: { sim_title:'Panel',
  last_update:'Última comprobación:', refresh_btn:'Actualizar', apikey_placeholder:'Tu API key de SISTRIX', save:'Guardar API Key',
- domains_title:'Dominios', domain:'Dominio', country:'País', mode:'Modo',
- domain_placeholder:'ejemplo.com', add:'+ Añadir dominio', active_domains:'dominios activos',
+ domains_title:'Direcciones', domain:'Dominio', country:'País', mode:'Modo', type:'Tipo', address:'Dirección',
+ domain_placeholder:'ejemplo.com', add:'+ Añadir', active_domains:'direcciones activas',
  loading_data:'Cargando datos de SISTRIX...', added:'Añadido',
  updated:'Actualizado', mode_changed:'Modo cambiado', deleted:'Eliminado',
  loading_dots:'Cargando...', fetching:'Pidiendo datos a SISTRIX...',
@@ -1017,8 +1050,8 @@ const I18N = {
  },
  en: { sim_title:'Panel',
  last_update:'Last check:', refresh_btn:'Refresh', apikey_placeholder:'Your SISTRIX API key', save:'Save API Key',
- domains_title:'Domains', domain:'Domain', country:'Country', mode:'Mode',
- domain_placeholder:'example.com', add:'+ Add domain', active_domains:'active domains',
+ domains_title:'Addresses', domain:'Domain', country:'Country', mode:'Mode', type:'Type', address:'Address',
+ domain_placeholder:'example.com', add:'+ Add', active_domains:'active addresses',
  loading_data:'Loading SISTRIX data...', added:'Added',
  updated:'Updated', mode_changed:'Mode changed', deleted:'Deleted',
  loading_dots:'Loading...', fetching:'Fetching data from SISTRIX...',
@@ -1031,8 +1064,8 @@ const I18N = {
  },
  fr: { sim_title:'Panel',
  last_update:'Dernière vérif.:', refresh_btn:'Actualiser', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer API Key',
- domains_title:'Domaines', domain:'Domaine', country:'Pays', mode:'Mode',
- domain_placeholder:'exemple.com', add:'+ Ajouter domaine', active_domains:'domaines actifs',
+ domains_title:'Adresses', domain:'Domaine', country:'Pays', mode:'Mode', type:'Type', address:'Adresse',
+ domain_placeholder:'exemple.com', add:'+ Ajouter', active_domains:'adresses actives',
  loading_data:'Chargement des données SISTRIX...', added:'Ajouté',
  updated:'Mis à jour', mode_changed:'Mode changé', deleted:'Supprimé',
  loading_dots:'Chargement...', fetching:'Récupération des données SISTRIX...',
@@ -1045,8 +1078,8 @@ const I18N = {
  },
  it: { sim_title:'Panel',
  last_update:'Ultimo controllo:', refresh_btn:'Aggiorna', apikey_placeholder:'La tua API key SISTRIX', save:'Salva API Key',
- domains_title:'Domini', domain:'Dominio', country:'Paese', mode:'Modalità',
- domain_placeholder:'esempio.com', add:'+ Aggiungi dominio', active_domains:'domini attivi',
+ domains_title:'Indirizzi', domain:'Dominio', country:'Paese', mode:'Modalità', type:'Tipo', address:'Indirizzo',
+ domain_placeholder:'esempio.com', add:'+ Aggiungi', active_domains:'indirizzi attivi',
  loading_data:'Caricamento dati SISTRIX...', added:'Aggiunto',
  updated:'Aggiornato', mode_changed:'Modalità cambiata', deleted:'Eliminato',
  loading_dots:'Caricamento...', fetching:'Recupero dati da SISTRIX...',
@@ -1059,8 +1092,8 @@ const I18N = {
  },
  de: { sim_title:'Panel',
  last_update:'Letzte Prüfung:', refresh_btn:'Aktualisieren', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'API Key speichern',
- domains_title:'Domains', domain:'Domain', country:'Land', mode:'Modus',
- domain_placeholder:'beispiel.de', add:'+ Domain hinzufügen', active_domains:'aktive Domains',
+ domains_title:'Adressen', domain:'Domain', country:'Land', mode:'Modus', type:'Typ', address:'Adresse',
+ domain_placeholder:'beispiel.de', add:'+ Hinzufügen', active_domains:'aktive Adressen',
  loading_data:'Lade SISTRIX-Daten...', added:'Hinzugefügt',
  updated:'Aktualisiert', mode_changed:'Modus geändert', deleted:'Gelöscht',
  loading_dots:'Laden...', fetching:'Daten von SISTRIX abrufen...',
@@ -1073,8 +1106,8 @@ const I18N = {
  },
  pt: { sim_title:'Panel',
  last_update:'Última verificação:', refresh_btn:'Atualizar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar API Key',
- domains_title:'Domínios', domain:'Domínio', country:'País', mode:'Modo',
- domain_placeholder:'exemplo.com', add:'+ Adicionar domínio', active_domains:'domínios ativos',
+ domains_title:'Endereços', domain:'Domínio', country:'País', mode:'Modo', type:'Tipo', address:'Endereço',
+ domain_placeholder:'exemplo.com', add:'+ Adicionar', active_domains:'endereços ativos',
  loading_data:'A carregar dados SISTRIX...', added:'Adicionado',
  updated:'Atualizado', mode_changed:'Modo alterado', deleted:'Eliminado',
  loading_dots:'A carregar...', fetching:'A obter dados do SISTRIX...',
@@ -1156,7 +1189,7 @@ const DOM = {
  apiKey: $('apiKey'), cycleBtns: $('cycleBtns'), langSelect: $('langSelect'),
  themeToggle: $('themeToggle'), toast: $('toast'),
  newDomain: $('newDomain'),
- newCountry: $('newCountry'), newLabel: $('newLabel'), newMode: $('newMode'),
+ newCountry: $('newCountry'), newLabel: $('newLabel'), newMode: $('newMode'), newType: $('newType'),
 };
 // Brand layout inputs
 const BL_IDS = ['logoX','logoY','logoSize','nameX','nameY','msgX','msgY','nameColor','msgColor','msgSpeed','nameFont','msgFont'];
@@ -1620,7 +1653,7 @@ function renderSlide() {
  drawLED(d);
  const status = DOM.previewStatus;
  if (d) {
- status.innerHTML = `${d.domain} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')} · ${d.country.toUpperCase()}`;
+ status.innerHTML = `${d.domain.replace(/^https?:\/\//, '')} · ${d.type || 'domain'} · ${d.country.toUpperCase()} · ${d.mode === 'daily' ? t('mode_daily') : t('mode_weekly')}`;
  }
  }
 }
@@ -1813,14 +1846,109 @@ function renderDomains(domains) {
  lastDomainHash = hash;
  DOM.domainList.innerHTML = domains.map((d, i) => {
  return `
- <div class="domain-card ${d.active ? '' : 'inactive'}" id="dcard-${i}">
+ <div class="domain-card ${d.active ? '' : 'inactive'}" id="dcard-${i}" data-index="${i}">
+ <span class="drag-handle" title="Drag to reorder">⠿</span>
  <span class="domain-label clickable" onclick="editDomain(${i})" title="Click to edit">${d.label}</span>
- <span class="domain-info clickable" onclick="editDomain(${i})" title="Click to edit">${d.domain}</span>
+ <span class="domain-info clickable" onclick="editDomain(${i})" title="${d.domain}">${d.domain.replace(/^https?:\/\//, '')}</span>
+ <span class="domain-type-tag">${d.type || 'domain'}</span>
+ <span class="domain-country-tag">${d.country.toUpperCase()}</span>
  <button class="domain-mode mode-${d.mode}" onclick="toggleMode(${i},'${d.mode}')">${t('mode_'+d.mode)}</button>
  <button class="toggle-btn toggle-sm ${d.active ? 'on' : 'off'}" onclick="toggleDomain(${i})" aria-label="${d.active ? t('disable') : t('enable')} ${d.label}" role="switch" aria-checked="${d.active}"></button>
  <button class="btn-icon btn-icon-danger" onclick="deleteDomain(${i})" aria-label="${t('confirm_delete')} ${d.label}">✕</button>
  </div>`;
  }).join('');
+ initDragAndDrop();
+}
+
+let _dragSrcIndex = null;
+function initDragAndDrop() {
+ const cards = DOM.domainList.querySelectorAll('.domain-card');
+ cards.forEach(card => {
+  // Only allow drag when starting from handle
+  card.draggable = false;
+  const handle = card.querySelector('.drag-handle');
+  if (handle) {
+   handle.addEventListener('mousedown', () => { card.draggable = true; });
+   document.addEventListener('mouseup', () => { card.draggable = false; }, {once: false});
+  }
+  card.addEventListener('dragstart', e => {
+   _dragSrcIndex = +card.dataset.index;
+   card.classList.add('dragging');
+   e.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => {
+   card.draggable = false;
+   card.classList.remove('dragging');
+   DOM.domainList.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+  });
+  card.addEventListener('dragover', e => {
+   e.preventDefault();
+   e.dataTransfer.dropEffect = 'move';
+   card.classList.add('drag-over');
+  });
+  card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+  card.addEventListener('drop', async e => {
+   e.preventDefault();
+   card.classList.remove('drag-over');
+   const to = +card.dataset.index;
+   if (_dragSrcIndex === null || _dragSrcIndex === to) return;
+   const order = [...Array(currentConfig.domains.length).keys()];
+   const [moved] = order.splice(_dragSrcIndex, 1);
+   order.splice(to, 0, moved);
+   await postJSON('/api/domains/reorder', {order});
+   lastDomainHash = '';
+   await loadConfig();
+   await loadPreview();
+  });
+ });
+
+ // Touch drag support
+ let _touchCard = null, _touchClone = null, _touchStartY = 0, _touchIndex = null;
+ cards.forEach(card => {
+  const handle = card.querySelector('.drag-handle');
+  if (!handle) return;
+  handle.addEventListener('touchstart', e => {
+   e.preventDefault();
+   _touchIndex = +card.dataset.index;
+   _touchCard = card;
+   _touchStartY = e.touches[0].clientY;
+   _touchClone = card.cloneNode(true);
+   _touchClone.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:0.8;width:'+card.offsetWidth+'px;left:'+card.getBoundingClientRect().left+'px;top:'+card.getBoundingClientRect().top+'px;';
+   document.body.appendChild(_touchClone);
+   card.classList.add('dragging');
+  }, {passive:false});
+ });
+ document.addEventListener('touchmove', e => {
+  if (!_touchClone) return;
+  e.preventDefault();
+  const y = e.touches[0].clientY;
+  _touchClone.style.top = (y - 20) + 'px';
+  const els = DOM.domainList.querySelectorAll('.domain-card');
+  els.forEach(c => c.classList.remove('drag-over'));
+  const target = document.elementFromPoint(e.touches[0].clientX, y);
+  const targetCard = target?.closest('.domain-card');
+  if (targetCard && targetCard !== _touchCard) targetCard.classList.add('drag-over');
+ }, {passive:false});
+ document.addEventListener('touchend', async () => {
+  if (!_touchClone) return;
+  _touchClone.remove(); _touchClone = null;
+  if (_touchCard) _touchCard.classList.remove('dragging');
+  const overCard = DOM.domainList.querySelector('.drag-over');
+  if (overCard) {
+   overCard.classList.remove('drag-over');
+   const to = +overCard.dataset.index;
+   if (_touchIndex !== null && _touchIndex !== to) {
+    const order = [...Array(currentConfig.domains.length).keys()];
+    const [moved] = order.splice(_touchIndex, 1);
+    order.splice(to, 0, moved);
+    await postJSON('/api/domains/reorder', {order});
+    lastDomainHash = '';
+    await loadConfig();
+    await loadPreview();
+   }
+  }
+  _touchCard = null; _touchIndex = null;
+ });
 }
 
 function cancelEdit() {
@@ -1832,27 +1960,43 @@ function editDomain(i) {
  const card = document.getElementById('dcard-' + i);
  if (card.querySelector('input')) return; // already editing
  const cfg = currentConfig.domains[i];
+ const curType = cfg.type || 'domain';
+ const curMode = cfg.mode || 'weekly';
  card.innerHTML = `
  <div class="edit-grid">
- <input type="text" value="${cfg.label}" maxlength="8" id="ed-label-${i}" class="edit-input" style="font-weight:bold;text-transform:uppercase;">
- <input type="text" value="${cfg.domain}" id="ed-domain-${i}" class="edit-input">
- <div id="ed-country-${i}" class="custom-select"></div>
+ <div class="edit-row">
+  <input type="text" value="${cfg.label}" maxlength="8" id="ed-label-${i}" class="edit-input" style="font-weight:bold;text-transform:uppercase;width:70px;flex-shrink:0;">
+  <input type="text" value="${cfg.domain}" id="ed-domain-${i}" class="edit-input" style="flex:1;min-width:100px;">
+  <div id="ed-type-${i}" class="custom-select" style="width:80px;flex-shrink:0;"></div>
  </div>
- <button class="btn btn-small" onclick="saveDomainEdit(${i})">OK</button>
- <button class="btn-icon btn-icon-muted" onclick="cancelEdit()" aria-label="Cancel">✕</button>
+ <div class="edit-row">
+  <div id="ed-country-${i}" class="custom-select" style="width:70px;flex-shrink:0;"></div>
+  <div id="ed-mode-${i}" class="custom-select" style="width:90px;flex-shrink:0;"></div>
+  <button class="btn btn-small" onclick="saveDomainEdit(${i})" style="flex:0 0 auto;">OK</button>
+  <button class="btn-icon btn-icon-danger" onclick="cancelEdit()" aria-label="Cancel" style="flex:0 0 auto;">✕</button>
+ </div>
+ </div>
  `;
+ initCustomSelect(document.getElementById('ed-type-' + i), [
+  {value:'domain',text:'Domain'},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}
+ ], curType);
  initCustomSelect(document.getElementById('ed-country-' + i), countryOptions(window._countries || []), cfg.country);
+ initCustomSelect(document.getElementById('ed-mode-' + i), [
+  {value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}
+ ], curMode);
  card.querySelector('input').focus();
 }
 
 async function saveDomainEdit(i) {
  const label = document.getElementById('ed-label-' + i).value.trim();
  const domain = document.getElementById('ed-domain-' + i).value.trim();
- const country = document.getElementById('ed-country-' + i).value;
+ const country = document.getElementById('ed-country-' + i).value.toLowerCase();
+ const type = document.getElementById('ed-type-' + i).value;
+ const mode = document.getElementById('ed-mode-' + i).value;
  if (!label || !domain) { toast(t('fill_fields')); return; }
  const old = currentConfig.domains[i];
- const domainChanged = old.domain !== domain || old.country !== country;
- await putJSON('/api/domains/' + i, {label, domain, country});
+ const domainChanged = old.domain !== domain || old.country !== country || old.type !== type;
+ await putJSON('/api/domains/' + i, {label, domain, country, type, mode});
  lastDomainHash = '';
  await loadConfig();
  if (domainChanged) toast(t('loading_data_short'), true);
@@ -1893,8 +2037,11 @@ async function addDomain() {
  const country = DOM.newCountry.value;
  const label = DOM.newLabel.value.trim();
  const mode = DOM.newMode.value;
+ const type = DOM.newType.value;
  if (!domain || !label) { toast(t('fill_fields')); return; }
- await postJSON('/api/domains', {domain, country, label, mode, active: true});
+ if (type === 'path' && !domain.includes('/')) { toast('Include / in path (e.g. example.com/blog/)'); return; }
+ if (type === 'url' && !domain.includes('/')) { toast('Include full path (e.g. example.com/page)'); return; }
+ await postJSON('/api/domains', {domain, country, label, mode, type, active: true});
  DOM.newDomain.value = '';
  DOM.newLabel.value = '';
  await loadConfig();
@@ -2433,10 +2580,12 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  const popup = document.createElement('div');
  popup.className = 'led-edit-popup';
 
- // Text input row
+ // Text input row (skip if colorOnly mode)
+ let inp = null;
+ if (!opts.colorOnly) {
  const row = document.createElement('div');
  row.className = 'edit-row';
- const inp = document.createElement('input');
+ inp = document.createElement('input');
  inp.type = 'text'; inp.value = currentVal;
  row.appendChild(inp);
  const okBtn = document.createElement('button');
@@ -2444,6 +2593,7 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  okBtn.textContent = '\u2713';
  row.appendChild(okBtn);
  popup.appendChild(row);
+ }
 
  if (opts.color) {
  let currentColor = opts.color;
@@ -2520,12 +2670,15 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  py = Math.max(8, py);
  popup.style.left = px + 'px'; popup.style.top = py + 'px';
  }
+ if (inp) {
  inp.focus(); inp.select();
  const confirm = () => { const v = inp.value; closeEditPopup(); onConfirm(v); };
- okBtn.addEventListener('click', e => { e.stopPropagation(); confirm(); });
+ popup.querySelector('.btn-ok').addEventListener('click', e => { e.stopPropagation(); confirm(); });
  inp.addEventListener('keydown', e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') closeEditPopup(); });
+ }
  popup.addEventListener('mousedown', e => e.stopPropagation());
  popup.addEventListener('touchstart', e => e.stopPropagation());
+ popup.addEventListener('keydown', e => { if (e.key === 'Escape') closeEditPopup(); });
  setTimeout(() => { document.addEventListener('mousedown', _onDocClickClose); document.addEventListener('touchstart', _onDocClickClose); }, 0);
 }
 function closeEditPopup() {
@@ -2703,7 +2856,13 @@ function onDataDblClick(e) {
  });
  } else {
  const pair = getColorKeyForElement(hit.id, data);
- if (pair) openDataColorPicker(pair[0], pair[1]);
+ if (pair) {
+  showEditPopup(e.clientX, e.clientY, '', null, {
+   colorOnly: true,
+   color: dataLayout[pair[0]] || pair[1],
+   onColor: c => { dataLayout[pair[0]] = c; saveDataLayout(); drawLED(previewData[currentIndex]); }
+  });
+ }
  }
 }
 
@@ -2799,7 +2958,7 @@ function initCustomSelect(container, options, defaultVal) {
  const f = (filter || '').toLowerCase();
  optList.innerHTML = '';
  options.forEach(o => {
- if (f && !o.text.toLowerCase().includes(f)) return;
+ if (f && !(o.search || o.text).toLowerCase().includes(f)) return;
  const div = document.createElement('div');
  div.className = 'custom-select-option' + (o.value === container._value ? ' selected' : '');
  div.textContent = o.text;
@@ -2863,7 +3022,7 @@ document.addEventListener('mousedown', e => {
 });
 
 function countryOptions(countries) {
- return countries.map(c => ({value: c.code, text: c.code.toUpperCase() + ' — ' + c.name}));
+ return countries.map(c => ({value: c.code, text: c.code.toUpperCase(), search: c.code + ' ' + c.name}));
 }
 
 async function loadCountries() {
@@ -2871,6 +3030,18 @@ async function loadCountries() {
  window._countries = await res.json();
  initCustomSelect(DOM.newCountry, countryOptions(window._countries), 'es');
 }
+
+// Init type and mode custom selects
+initCustomSelect(DOM.newType, [
+ {value:'domain',text:'Domain'},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}
+], 'domain');
+DOM.newType.onchange = () => {
+ const placeholders = {domain:'example.com', host:'www.example.com', path:'example.com/blog/', url:'example.com/blog/post-1'};
+ DOM.newDomain.placeholder = placeholders[DOM.newType.value] || 'example.com';
+};
+initCustomSelect(DOM.newMode, [
+ {value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}
+], 'weekly');
 
 // Init
 initCustomSelect(DOM.langSelect, [
@@ -2891,6 +3062,7 @@ function syncArrowHeight() {
  });
 }
 window.addEventListener('resize', syncArrowHeight);
+
 
 loadConfig();
 loadPreview();
