@@ -761,6 +761,12 @@ def index():
  .drag-handle { cursor:grab; color:var(--dim); font-size:var(--text-base); user-select:none; padding:0 var(--space-1); flex-shrink:0; opacity:0.4; transition:opacity 0.2s; line-height:1; }
  .drag-handle:hover { opacity:1; }
  .drag-handle:active { cursor:grabbing; }
+ .reorder-btns { display:none; flex-direction:column; gap:1px; flex-shrink:0; }
+ .btn-reorder { background:none; border:1px solid var(--border); color:var(--dim); font-size:8px; line-height:1; padding:2px 4px; cursor:pointer; border-radius:var(--radius-sm); }
+ .btn-reorder:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
+ .btn-reorder:disabled { opacity:0.2; cursor:default; }
+ .btn-reorder:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+ @media (hover:none) { .reorder-btns { display:flex; } .drag-handle { display:none; } }
  .domain-card.dragging { opacity:0.4; border-style:dashed; }
  .domain-card.drag-over { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
  .domain-mode {
@@ -902,6 +908,7 @@ def index():
  }
  .custom-select-option:hover, .custom-select-option.highlighted { background:var(--hover); }
  .custom-select-option.selected { color:var(--accent); font-weight:bold; }
+ .custom-select-option.highlighted { background:var(--surface-sunken); outline:2px solid var(--accent); outline-offset:-2px; }
 
  /* Layout editor */
  #ledCanvas.edit-mode { cursor:crosshair; }
@@ -981,7 +988,7 @@ def index():
  <div class="led-stage">
  <button id="btnPrev" onclick="prevDomain()" class="led-arrow" aria-label="Previous domain">&#8249;</button>
  <div class="led-center">
- <div class="led-status-row"><span id="previewStatus" class="led-info"></span></div>
+ <div class="led-status-row"><span id="previewStatus" class="led-info" aria-live="polite"></span></div>
  <div class="led-outer" id="ledOuter">
  <div class="led-canvas-wrap">
  <canvas id="ledCanvas" width="384" height="192" role="img" aria-label="LED panel simulator showing domain visibility index">LED panel simulator</canvas>
@@ -1015,7 +1022,7 @@ def index():
  <!-- DOMAINS -->
  <div class="section">
  <div class="section-title" data-i18n="domains_title">Domains</div>
- <div id="domainList"></div>
+ <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
  <div class="add-form">
  <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8"></div>
  <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder"></div>
@@ -1847,9 +1854,13 @@ function renderDomains(domains) {
  DOM.domainList.innerHTML = domains.map((d, i) => {
  return `
  <div class="domain-card ${d.active ? '' : 'inactive'}" id="dcard-${i}" data-index="${i}">
- <span class="drag-handle" title="Drag to reorder">⠿</span>
- <span class="domain-label clickable" onclick="editDomain(${i})" title="Click to edit">${d.label}</span>
- <span class="domain-info clickable" onclick="editDomain(${i})" title="${d.domain}">${d.domain.replace(/^https?:\/\//, '')}</span>
+ <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
+ <span class="reorder-btns" role="group" aria-label="Reorder">
+ <button class="btn-reorder" onclick="moveDomain(${i},-1)" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>▲</button>
+ <button class="btn-reorder" onclick="moveDomain(${i},1)" aria-label="Move down" ${i === domains.length - 1 ? 'disabled' : ''}>▼</button>
+ </span>
+ <span class="domain-label clickable" onclick="editDomain(${i})" onkeydown="if(event.key==='Enter')editDomain(${i})" tabindex="0" role="button" title="Click to edit">${d.label}</span>
+ <span class="domain-info clickable" onclick="editDomain(${i})" onkeydown="if(event.key==='Enter')editDomain(${i})" tabindex="0" role="button" title="${d.domain}">${d.domain.replace(/^https?:\/\//, '')}</span>
  <span class="domain-type-tag">${d.type || 'domain'}</span>
  <span class="domain-country-tag">${d.country.toUpperCase()}</span>
  <button class="domain-mode mode-${d.mode}" onclick="toggleMode(${i},'${d.mode}')">${t('mode_'+d.mode)}</button>
@@ -1858,6 +1869,24 @@ function renderDomains(domains) {
  </div>`;
  }).join('');
  initDragAndDrop();
+}
+
+async function moveDomain(idx, dir) {
+ const len = currentConfig.domains.length;
+ const to = idx + dir;
+ if (to < 0 || to >= len) return;
+ const order = [...Array(len).keys()];
+ const [moved] = order.splice(idx, 1);
+ order.splice(to, 0, moved);
+ await postJSON('/api/domains/reorder', {order});
+ lastDomainHash = '';
+ await loadConfig();
+ await loadPreview();
+ // Restore focus to the moved card's button
+ setTimeout(() => {
+  const card = document.getElementById('dcard-' + to);
+  if (card) { const btn = card.querySelector('.btn-reorder:not(:disabled)'); if (btn) btn.focus(); }
+ }, 100);
 }
 
 let _dragSrcIndex = null;
@@ -2574,11 +2603,16 @@ const COLOR_PALETTE = [
  '#8800ff','#cc00ff','#ff00ff','#ff0088',
  '#00c853','#00dc00','#ff2d55','#ff2828',
 ];
+let _editPopupReturnFocus = null;
 function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  closeEditPopup();
  opts = opts || {};
+ _editPopupReturnFocus = document.activeElement;
  const popup = document.createElement('div');
  popup.className = 'led-edit-popup';
+ popup.setAttribute('role', 'dialog');
+ popup.setAttribute('aria-modal', 'true');
+ popup.setAttribute('aria-label', opts.colorOnly ? 'Color picker' : 'Edit element');
 
  // Text input row (skip if colorOnly mode)
  let inp = null;
@@ -2678,11 +2712,21 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  }
  popup.addEventListener('mousedown', e => e.stopPropagation());
  popup.addEventListener('touchstart', e => e.stopPropagation());
- popup.addEventListener('keydown', e => { if (e.key === 'Escape') closeEditPopup(); });
+ popup.addEventListener('keydown', e => {
+ if (e.key === 'Escape') closeEditPopup();
+ if (e.key === 'Tab') {
+  const focusable = popup.querySelectorAll('input, button, [tabindex]:not([tabindex="-1"]), .color-swatch, .color-custom-dot');
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+ }
+ });
  setTimeout(() => { document.addEventListener('mousedown', _onDocClickClose); document.addEventListener('touchstart', _onDocClickClose); }, 0);
 }
 function closeEditPopup() {
  if (_editPopup) { _editPopup.remove(); _editPopup = null; }
+ if (_editPopupReturnFocus) { try { _editPopupReturnFocus.focus(); } catch(e) {} _editPopupReturnFocus = null; }
  document.removeEventListener('mousedown', _onDocClickClose);
  document.removeEventListener('touchstart', _onDocClickClose);
 }
@@ -2940,37 +2984,69 @@ function initCustomSelect(container, options, defaultVal) {
  container._value = defaultVal || (options[0]?.value ?? '');
  const trigger = document.createElement('div');
  trigger.className = 'custom-select-trigger';
+ trigger.setAttribute('role', 'combobox');
+ trigger.setAttribute('aria-haspopup', 'listbox');
+ trigger.setAttribute('aria-expanded', 'false');
+ trigger.setAttribute('tabindex', '0');
  const dropdown = document.createElement('div');
  dropdown.className = 'custom-select-dropdown';
+ dropdown.setAttribute('role', 'listbox');
+ const hasSearch = options.length > 6;
  const searchBox = document.createElement('div');
  searchBox.className = 'custom-select-search';
  const searchInput = document.createElement('input');
  searchInput.type = 'text';
  searchInput.placeholder = '...';
+ searchInput.setAttribute('aria-label', 'Filter options');
  searchBox.appendChild(searchInput);
- if (options.length > 6) dropdown.appendChild(searchBox);
+ if (hasSearch) dropdown.appendChild(searchBox);
  const optList = document.createElement('div');
  dropdown.appendChild(optList);
  container.appendChild(trigger);
  container.appendChild(dropdown);
+ let _activeIdx = -1;
 
  function renderOptions(filter) {
  const f = (filter || '').toLowerCase();
  optList.innerHTML = '';
+ _activeIdx = -1;
+ let idx = 0;
  options.forEach(o => {
  if (f && !(o.search || o.text).toLowerCase().includes(f)) return;
  const div = document.createElement('div');
- div.className = 'custom-select-option' + (o.value === container._value ? ' selected' : '');
+ const isSel = o.value === container._value;
+ div.className = 'custom-select-option' + (isSel ? ' selected' : '');
  div.textContent = o.text;
+ div.setAttribute('role', 'option');
+ div.setAttribute('aria-selected', isSel ? 'true' : 'false');
+ div.dataset.idx = idx;
+ if (isSel) _activeIdx = idx;
  div.addEventListener('click', e => {
  e.stopPropagation();
+ selectOption(o);
+ });
+ optList.appendChild(div);
+ idx++;
+ });
+ }
+
+ function selectOption(o) {
  container._value = o.value;
  trigger.textContent = o.text;
  close();
  if (container.onchange) container.onchange();
- });
- optList.appendChild(div);
- });
+ }
+
+ function highlightIdx(newIdx) {
+ const items = optList.querySelectorAll('[role="option"]');
+ if (!items.length) return;
+ if (newIdx < 0) newIdx = items.length - 1;
+ if (newIdx >= items.length) newIdx = 0;
+ items.forEach(el => el.classList.remove('highlighted'));
+ _activeIdx = newIdx;
+ items[_activeIdx].classList.add('highlighted');
+ items[_activeIdx].scrollIntoView({block:'nearest'});
+ trigger.setAttribute('aria-activedescendant', '');
  }
 
  function positionDropdown() {
@@ -2984,26 +3060,60 @@ function initCustomSelect(container, options, defaultVal) {
  positionDropdown();
  trigger.classList.add('open');
  dropdown.classList.add('open');
+ trigger.setAttribute('aria-expanded', 'true');
  searchInput.value = '';
  renderOptions('');
- setTimeout(() => searchInput.focus(), 10);
+ if (hasSearch) setTimeout(() => searchInput.focus(), 10);
  }
  function close() {
  trigger.classList.remove('open');
  dropdown.classList.remove('open');
+ trigger.setAttribute('aria-expanded', 'false');
+ trigger.focus();
+ }
+
+ function handleKeyNav(e) {
+ const isOpen = dropdown.classList.contains('open');
+ if (!isOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+  e.preventDefault(); open(); return;
+ }
+ if (!isOpen) return;
+ if (e.key === 'ArrowDown') { e.preventDefault(); highlightIdx(_activeIdx + 1); }
+ else if (e.key === 'ArrowUp') { e.preventDefault(); highlightIdx(_activeIdx - 1); }
+ else if (e.key === 'Enter') {
+  e.preventDefault();
+  const items = optList.querySelectorAll('[role="option"]');
+  if (_activeIdx >= 0 && items[_activeIdx]) {
+   const val = options.find(o => o.text === items[_activeIdx].textContent);
+   if (val) selectOption(val);
+  }
+ }
+ else if (e.key === 'Escape') { e.preventDefault(); close(); }
+ else if (e.key === 'Home') { e.preventDefault(); highlightIdx(0); }
+ else if (e.key === 'End') { e.preventDefault(); highlightIdx(optList.querySelectorAll('[role="option"]').length - 1); }
  }
 
  trigger.addEventListener('click', e => {
  e.stopPropagation();
  dropdown.classList.contains('open') ? close() : open();
  });
+ trigger.addEventListener('keydown', handleKeyNav);
  searchInput.addEventListener('input', () => renderOptions(searchInput.value));
  searchInput.addEventListener('click', e => e.stopPropagation());
- searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+ searchInput.addEventListener('keydown', e => {
+ if (e.key === 'Escape') close();
+ else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Home' || e.key === 'End') handleKeyNav(e);
+ });
 
  // Set initial display
  const sel = options.find(o => o.value === container._value);
  trigger.textContent = sel ? sel.text : '';
+
+ // Label association: find <label> with for pointing to container id
+ if (container.id) {
+ const label = document.querySelector('label[for="' + container.id + '"]');
+ if (label) { label.removeAttribute('for'); label.addEventListener('click', () => trigger.focus()); trigger.setAttribute('aria-label', label.textContent.trim()); }
+ }
 
  // Value getter
  Object.defineProperty(container, 'value', {
@@ -3018,7 +3128,7 @@ function initCustomSelect(container, options, defaultVal) {
 document.addEventListener('mousedown', e => {
  if (e.target.closest('.custom-select')) return;
  document.querySelectorAll('.custom-select-dropdown.open').forEach(d => d.classList.remove('open'));
- document.querySelectorAll('.custom-select-trigger.open').forEach(t => t.classList.remove('open'));
+ document.querySelectorAll('.custom-select-trigger.open').forEach(t => { t.classList.remove('open'); t.setAttribute('aria-expanded', 'false'); });
 });
 
 function countryOptions(countries) {
