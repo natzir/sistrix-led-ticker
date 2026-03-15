@@ -27,8 +27,13 @@ from PIL import Image, ImageFilter, ImageEnhance
 
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
+CONFIG_DEFAULT = BASE_DIR / "config.default.json"
 CACHE_DIR = BASE_DIR / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
+
+if not CONFIG_PATH.exists() and CONFIG_DEFAULT.exists():
+    import shutil
+    shutil.copy(CONFIG_DEFAULT, CONFIG_PATH)
 
 app = Flask(__name__)
 _config_lock = threading.Lock()
@@ -813,10 +818,14 @@ def _build_index_html():
  display:flex; flex-direction:column; gap:var(--space-3); min-width:0; overflow:hidden;
  }
  .led-status-row { display:flex; justify-content:space-between; align-items:center; min-height:24px; max-width:100%; }
- .btn-power { background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer; font-size:var(--text-sm); border-radius:var(--radius-sm); padding:0 var(--space-3); height:24px; display:inline-flex; align-items:center; font-family:inherit; transition:all 0.2s; position:relative; flex-shrink:0; margin-left:var(--space-3); }
+ .btn-power { background:none; border:1px solid var(--dim); color:var(--dim); cursor:pointer; font-size:var(--text-sm); border-radius:var(--radius-sm); padding:0 var(--space-3); height:24px; display:inline-flex; align-items:center; font-family:inherit; transition:none; position:relative; flex-shrink:0; margin-left:var(--space-3); }
  @media (hover:none) { .btn-power::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; } }
  .btn-power:hover { border-color:var(--accent); color:var(--accent); }
- .btn-power.off { border-color:var(--red); color:var(--red); }
+ .btn-power.off { border-color:var(--accent); color:var(--accent); }
+ .led-stage.screen-off .led-arrow,
+ .led-stage.screen-off .led-info,
+ .led-stage.screen-off .led-controls,
+ .led-stage.screen-off .led-controls * { visibility:hidden !important; transition:none !important; }
  .led-outer {
  background: var(--led-bg);
  border-radius: var(--radius-md);
@@ -1104,7 +1113,7 @@ def _build_index_html():
  </div>
  </div>
  <div class="led-controls">
- <button id="btnPlayPause" onclick="toggleAutoRotate()" class="btn-outline active" aria-label="Toggle auto-rotation" style="min-width:70px;"><span id="domainCounter">&#9654; -/-</span></button>
+ <button id="btnPlayPause" onclick="toggleAutoRotate()" class="btn-outline active" aria-label="Toggle auto-rotation" style="min-width:70px;"><span id="domainCounter">&#9646;&#9646; -/-</span></button>
  <div id="cycleBtns" role="group" aria-label="Rotation speed" style="display:flex;align-items:center;gap:4px;"></div>
  <div style="display:flex;gap:var(--space-3);margin-left:auto;">
  <button id="btnReset" onclick="resetCurrentLayout()" class="btn-outline" style="display:none;" aria-label="Reset layout" title="Reset layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 9 9"/><polyline points="3 7 3 12 8 12"/></svg></button>
@@ -1809,6 +1818,7 @@ function nextDomain() {
  stopMessageScroll();
  currentIndex = (currentIndex + 1) % total;
  renderSlide();
+ if (autoRotate) startRotation();
 }
 
 function prevDomain() {
@@ -1818,6 +1828,7 @@ function prevDomain() {
  stopMessageScroll();
  currentIndex = (currentIndex - 1 + total) % total;
  renderSlide();
+ if (autoRotate) startRotation();
 }
 
 function renderSlide() {
@@ -1827,10 +1838,10 @@ function renderSlide() {
  if (total === 0) {
  showingBrand = false;
  drawLED(null);
- DOM.domainCounter.innerHTML = `${autoRotate ? '&#9654;' : '&#9646;&#9646;'} -/-`;
+ DOM.domainCounter.innerHTML = `${autoRotate ? '&#9646;&#9646;' : '&#9654;'} -/-`;
  return;
  }
- DOM.domainCounter.innerHTML = `${autoRotate ? '&#9654;' : '&#9646;&#9646;'} ${currentIndex + 1}/${total}`;
+ DOM.domainCounter.innerHTML = `${autoRotate ? '&#9646;&#9646;' : '&#9654;'} ${currentIndex + 1}/${total}`;
 
  if (isBrandSlide()) {
  showingBrand = true;
@@ -1892,16 +1903,19 @@ let screenOff = false;
 async function toggleScreen() {
  screenOff = !screenOff;
  const btn = $('btnPower');
+ const stage = document.querySelector('.led-stage');
  if (screenOff) {
   stopRotation();
   stopMessageScroll();
+  stage.classList.add('screen-off');
+  btn.classList.add('off');
+  btn.textContent = '\u23FB ON';
+  btn.title = t('screen_on');
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(offCanvas, 0, 0);
-  btn.classList.add('off');
-  btn.textContent = '\u23FB OFF';
-  btn.title = t('screen_on');
  } else {
+  stage.classList.remove('screen-off');
   btn.classList.remove('off');
   btn.textContent = '\u23FB';
   btn.title = t('screen_off');
@@ -1999,7 +2013,7 @@ async function updatePreviewData(force=false, refresh=false) {
  if (autoRotate && !dataLayoutEditMode && !layoutEditMode) startRotation();
  } else {
  drawLED(null);
- DOM.domainCounter.innerHTML = `${autoRotate ? '&#9654;' : '&#9646;&#9646;'} -/-`;
+ DOM.domainCounter.innerHTML = `${autoRotate ? '&#9646;&#9646;' : '&#9654;'} -/-`;
  }
 }
 
@@ -2066,13 +2080,15 @@ function applyConfig(config) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(offCanvas, 0, 0);
   btn.classList.add('off');
-  btn.textContent = '\u23FB OFF';
+  btn.textContent = '\u23FB ON';
   btn.title = t('screen_on');
+  document.querySelector('.led-stage').classList.add('screen-off');
  } else if (!wasOff && screenOff) {
   screenOff = false;
   btn.classList.remove('off');
   btn.textContent = '\u23FB';
   btn.title = t('screen_off');
+  document.querySelector('.led-stage').classList.remove('screen-off');
  }
 }
 async function loadConfig() {
@@ -2385,7 +2401,7 @@ async function saveApiKey() {
 // ===== BRAND =====
 let brandData = {};
 let brandLogoPixels = null;
-let brandLayout = { logoX:1, logoY:1, logoSize:16, nameX:19, nameY:6, nameH:null, msgY:21, msgH:null, nameColor:'#ffffff', msgColor:'#00c853', msgSpeed:60, nameFont:'small', msgFont:'small' };
+let brandLayout = { logoX:1, logoY:1, logoSize:16, nameX:20, nameY:6, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:42, nameFont:'small', msgFont:'small' };
 
 function initBrandSelects() {
  const onChange = () => saveBrandLayout();
@@ -2446,7 +2462,7 @@ function previewBrandCard() {
  drawBrandCard();
  startMessageScroll();
  const total = totalSlides();
- DOM.domainCounter.innerHTML = `${autoRotate ? '&#9654;' : '&#9646;&#9646;'} ${currentIndex + 1}/${total}`;
+ DOM.domainCounter.innerHTML = `${autoRotate ? '&#9646;&#9646;' : '&#9654;'} ${currentIndex + 1}/${total}`;
  DOM.previewStatus.innerHTML = `${t('brand_title')} <button class="toggle-btn toggle-sm on" onclick="toggleBrandEnabled()" aria-label="${t('disable')}" role="switch" aria-checked="true"></button>`;
  DOM.ledOuter.scrollIntoView({behavior:'smooth', block:'center'});
 }
@@ -2654,7 +2670,7 @@ function stopMessageScroll() {
 
 // ===== GENERIC LAYOUT EDITOR =====
 let layoutEditMode = false;
-const DEFAULT_LAYOUT = { logoX:1, logoY:1, logoSize:18, nameX:24, nameY:7, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:60, nameFont:'small', msgFont:'small' };
+const DEFAULT_LAYOUT = { logoX:1, logoY:1, logoSize:16, nameX:20, nameY:6, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:42, nameFont:'small', msgFont:'small' };
 
 function createLayoutEditor(opts) {
  const st = { drag:null, resize:null, hover:null, dragOX:0, dragOY:0,

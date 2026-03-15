@@ -28,8 +28,13 @@ from pathlib import Path
 # ============================================================
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
+CONFIG_DEFAULT = BASE_DIR / "config.default.json"
 CACHE_DIR = BASE_DIR / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
+
+if not CONFIG_PATH.exists() and CONFIG_DEFAULT.exists():
+    import shutil
+    shutil.copy(CONFIG_DEFAULT, CONFIG_PATH)
 
 PANEL_ROWS = 32
 PANEL_COLS = 64
