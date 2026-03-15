@@ -15,6 +15,7 @@ Natzir Turrado — consultor SEO independiente basado en Barcelona. Trabaja con 
 - **Adafruit RGB Matrix Bonnet** — PENDIENTE DE COMPRA
 - **Carcasa 3D** de Etsy (Portugal) para panel P3 64x32 — PENDIENTE DE COMPRA
 - **Fuente 5V 4A** para el panel — PENDIENTE DE COMPRA
+- **Botón físico** Gebildet 12mm momentary push button (blue LED, 12-24V, normally open SPST) — COMPRADO, cableado a GPIO26
 
 ## Stack de software
 
@@ -71,6 +72,8 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - Auto-recarga de config.json sin reiniciar
 - Fallback a caché si la API falla
 - Modo simulación (guarda PNG) si no hay hardware LED conectado
+- **Screen off**: lee `screen_off` del config, muestra frame negro cuando está apagado
+- **Botón GPIO**: GPIO26 con pull-up interno, FALLING edge, 300ms debounce → toggle `screen_off` en config.json
 
 ### web_panel.py
 - Web panel completo en http://raspberrypi.local:5001 (puerto 5001)
@@ -95,6 +98,10 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - **Footer**: enlace natzir.com + iconos sociales (X, LinkedIn, Email)
 - **Refresh con confirmación**: botón ACTUALIZAR → toast informativo + CONFIRMAR (sin CLS)
 - **Toast notifications**: sistema de notificaciones con duración configurable (3.5s)
+- **Screen on/off**: botón ⏻ en panel header, muestra "⏻ OFF" rojo cuando apagado, sincronizado con display.py via config.json
+- **Delete con toast+confirm**: reemplaza `confirm()` nativo por patrón armed button (primer clic arma, segundo confirma)
+- **Seguridad**: `_safe_config()` elimina API key de respuestas, `esc()` para XSS, `textContent` vs `innerHTML`
+- **Thread safety**: `copy.deepcopy()` en `load_config()`, `ThreadPoolExecutor` a nivel módulo
 
 ### config.json
 ```json
@@ -103,7 +110,8 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
   "display": {
     "brightness": 60,
     "cycle_seconds": 10,
-    "refresh_minutes": 60
+    "refresh_minutes": 60,
+    "screen_off": false
   },
   "domains": [
     {"domain": "destinia.com", "country": "es", "label": "DEST", "mode": "daily", "type": "domain", "active": true},
@@ -123,14 +131,18 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 5. ✅ Web panel probado en browser (simulador LED funcional)
 6. ✅ API key SISTRIX configurada y validada
 7. ✅ Repositorio git inicializado
-8. ✅ WCAG 2.1 AA accessibility audit completado
+8. ✅ WCAG 2.1 AA accessibility audit completado (axe-core 0 violations)
 9. ✅ Performance optimizado (gzip, ETag, unified init, CLS fixes)
 10. ✅ Bug fixes: request validation, cache mutation, API response safety
 11. ✅ Bitmap symbols, gradient color picker, footer/UI redesign
-12. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
-13. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
-14. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
-15. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
+12. ✅ Screen on/off: web panel + display.py + GPIO button (GPIO26)
+13. ✅ Security: API key sanitization, XSS protection, thread safety
+14. ✅ Delete con toast+confirm, W3C validation clean
+15. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
+16. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
+17. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
+18. ⬜ Cablear botón físico a GPIO26 + GND — PENDIENTE
+19. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
 
 ## Notas para desarrollo
 
