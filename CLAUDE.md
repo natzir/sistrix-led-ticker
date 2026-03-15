@@ -76,7 +76,7 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - Web panel completo en http://raspberrypi.local:5001 (puerto 5001)
 - **Simulador LED**: réplica visual del panel 64x32 con efecto LED (puntos circulares + glow), rotación automática, controles ◀ ▶
 - **Brand card**: tarjeta personalizada con logo (favicon o imagen URL), nombre y mensaje con scroll animado (requestAnimationFrame)
-- **Layout editor**: editar posición y tamaño de elementos arrastrando/redimensionando (4 esquinas), doble-clic para editar texto/color. Cada elemento es independiente: LABEL, MODE, CHANGE%, VALUE, COUNTRY, SPARKLINE
+- **Layout editor**: editar posición y tamaño de elementos arrastrando/redimensionando (4 esquinas), doble-clic para editar texto. Cada elemento es independiente: LABEL, MODE, CHANGE%, VALUE, COUNTRY, SPARKLINE (sin edición de color en data layout)
 - **Gestión de dominios**: añadir, eliminar, activar/desactivar, cambiar modo weekly/daily, drag & drop reorder
 - **API key**: configurar y guardar (validación contra endpoint /credits)
 - **Display settings**: brillo, velocidad rotación, frecuencia refresco
@@ -85,11 +85,16 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - **API REST**: todos los endpoints en /api/* para gestión programática
 - **Accesibilidad**: WCAG 2.1 AA (ARIA combobox/listbox, focus trapping, aria-live, keyboard navigation, touch targets)
 - **Performance**: gzip + ETag caching, unified `/api/init`, config mtime caching, debounced resize, visibility API polling
-- **Fuentes pixel**: bitmap fonts 3x5, 4x6, 5x7 con anchos variables (`.` y espacio más estrechos)
+- **Fuentes pixel**: bitmap fonts 3x5, 4x6, 5x7 con anchos variables (`.` y espacio más estrechos). Incluyen caracteres especiales: `$`, `&`, `(`, `)`, `=`, `#`, `@`
+- **Gradient color picker**: degradado de 2 colores editables, almacenado como `gradient:#color1:#color2`, interpolación por posición X del pixel
+- **Color picker**: paleta de swatches + rainbow + gradient expandible + custom color
 - **Change% alineado a la derecha**: último carácter siempre en LED_W-1, crece hacia la izquierda
 - Canvas double-buffering (offscreen canvas → visible canvas blit)
 - UI dark monospace con design tokens CSS (spacing, radius, colors)
-- Responsive: funciona en desktop y mobile (touch events, CLS optimizado)
+- Responsive: funciona en desktop y mobile (touch events, CLS optimizado, touch targets 44px)
+- **Footer**: enlace natzir.com + iconos sociales (X, LinkedIn, Email)
+- **Refresh con confirmación**: botón ACTUALIZAR → toast informativo + CONFIRMAR (sin CLS)
+- **Toast notifications**: sistema de notificaciones con duración configurable (3.5s)
 
 ### config.json
 ```json
@@ -121,10 +126,11 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 8. ✅ WCAG 2.1 AA accessibility audit completado
 9. ✅ Performance optimizado (gzip, ETag, unified init, CLS fixes)
 10. ✅ Bug fixes: request validation, cache mutation, API response safety
-11. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
-12. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
-13. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
-14. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
+11. ✅ Bitmap symbols, gradient color picker, footer/UI redesign
+12. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
+13. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
+14. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
+15. ⬜ Activar sistrix-display.service con panel real — PENDIENTE
 
 ## Notas para desarrollo
 
@@ -141,6 +147,7 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - Para desarrollo local: `python3 web_panel.py` sirve en puerto 5001
 - La caché gzip del HTML se vacía al reiniciar el servidor
 - Los anchos de caracteres pixel son variables: `.` ocupa 3px y espacio 2px en fuente large
+- **Puppeteer** disponible para screenshots automáticos (desktop 1280x900, mobile 390x844). Usar `puppeteer-core` con Chrome local
 
 ## Próximos pasos posibles
 

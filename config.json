@@ -2,8 +2,9 @@
   "sistrix_api_key": "XhRabqpNzHIAZDXcpNEfIzvQXEBAkv3Hub",
   "display": {
     "brightness": 60,
-    "cycle_seconds": 5,
-    "refresh_minutes": 60
+    "cycle_seconds": 10,
+    "refresh_minutes": 60,
+    "screen_off": false
   },
   "domains": [
     {
@@ -12,21 +13,22 @@
       "label": "DEST HOT",
       "mode": "daily",
       "type": "path",
-      "active": true
+      "active": false
+    },
+    {
+      "domain": "certicalia.com",
+      "country": "es",
+      "label": "CRTC",
+      "mode": "daily",
+      "type": "domain",
+      "active": false
     },
     {
       "domain": "destinia.com",
       "country": "es",
       "label": "DEST",
       "mode": "daily",
-      "active": true
-    },
-    {
-      "domain": "audi.es",
-      "country": "es",
-      "label": "AUDI",
-      "mode": "daily",
-      "active": true
+      "active": false
     },
     {
       "domain": "civitatis.com",
@@ -39,7 +41,7 @@
       "domain": "pccomponentes.com",
       "country": "es",
       "label": "PCC",
-      "mode": "weekly",
+      "mode": "daily",
       "active": false
     },
     {
@@ -54,7 +56,7 @@
       "country": "es",
       "label": "YMV",
       "mode": "daily",
-      "active": true
+      "active": false
     }
   ],
   "language": "es",

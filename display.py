@@ -141,6 +141,8 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
     if mode == "daily":
         params["daily"] = "true"
 
+    cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
+
     try:
         resp = requests.get(url, params=params, timeout=30)
         resp.raise_for_status()
@@ -176,7 +178,6 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
         )
 
         # Local cache
-        cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
         with open(cache_file, "w") as f:
             json.dump({
                 "current_value": current,
@@ -192,7 +193,6 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
         print(f"[ERROR] {domain}: {e}")
 
         # Try loading from cache
-        cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
         if cache_file.exists():
             try:
                 with open(cache_file) as f:
@@ -249,6 +249,12 @@ def get_fonts():
     return _fonts
 
 
+def _new_frame():
+    """Create a blank 64x32 frame with draw context and fonts."""
+    img = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
+    return img, ImageDraw.Draw(img), get_fonts()
+
+
 def render_frame(vd: VisibilityData) -> Image.Image:
     """
     Renders a 64x32 frame:
@@ -256,9 +262,7 @@ def render_frame(vd: VisibilityData) -> Image.Image:
     - Line 2: 123.45           ES
     - Bottom: sparkline
     """
-    img = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    fonts = get_fonts()
+    img, draw, fonts = _new_frame()
 
     color = (0, 220, 0) if vd.is_up else (255, 40, 40)
     white = (255, 255, 255)
@@ -281,8 +285,6 @@ def render_frame(vd: VisibilityData) -> Image.Image:
     # --- Line 2: Current value + country ---
     if vd.current_value >= 100:
         value_str = f"{vd.current_value:.1f}"
-    elif vd.current_value >= 10:
-        value_str = f"{vd.current_value:.2f}"
     else:
         value_str = f"{vd.current_value:.2f}"
     draw.text((1, 10), value_str, fill=white, font=fonts["large"])
@@ -319,9 +321,7 @@ def render_frame(vd: VisibilityData) -> Image.Image:
 
 def render_loading() -> Image.Image:
     """Loading screen while fetching data."""
-    img = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    fonts = get_fonts()
+    img, draw, fonts = _new_frame()
     draw.text((4, 4), "SISTRIX", fill=(0, 120, 255), font=fonts["large"])
     draw.text((4, 18), "Loading...", fill=(80, 80, 80), font=fonts["small"])
     return img
@@ -329,9 +329,7 @@ def render_loading() -> Image.Image:
 
 def render_no_data() -> Image.Image:
     """Screen when no data is available."""
-    img = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    fonts = get_fonts()
+    img, draw, fonts = _new_frame()
     draw.text((4, 4), "NO DATA", fill=(255, 40, 40), font=fonts["large"])
     draw.text((4, 18), "Check config", fill=(80, 80, 80), font=fonts["small"])
     return img
