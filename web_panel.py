@@ -717,6 +717,7 @@ def _build_index_html():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
 <title>SISTRIX LED Ticker by Natzir</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='10' fill='%2300c853'/></svg>">
 <style>
  /* ===== DESIGN TOKENS ===== */
  :root {
@@ -1984,9 +1985,12 @@ function postJSON(url, data) {
 function putJSON(url, data) {
  return fetch(url, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
 }
+let _previewFetchId = 0;
 async function updatePreviewData(force=false, refresh=false) {
+ const fetchId = ++_previewFetchId;
  const url = force ? '/api/preview?force=true' : (refresh ? '/api/preview?refresh=true' : '/api/preview');
  const res = await fetch(url);
+ if (fetchId !== _previewFetchId) return;
  previewData = await res.json();
  const total = totalSlides();
  if (total > 0) {
@@ -2361,7 +2365,7 @@ async function saveApiKey() {
  await postJSON('/api/apikey', {api_key: ''});
  toast(t('apikey_removed'));
  $('apiKeyPopup').style.display = 'none';
- loadConfig();
+ await loadConfig();
  return;
  }
  toast(t('apikey_checking'), true);
@@ -2371,7 +2375,7 @@ async function saveApiKey() {
  sistrixCredits = data.credits;
  toast(t('apikey_valid') + (data.credits != null ? ` (${data.credits} ${t('credits')})` : ''));
  $('apiKeyPopup').style.display = 'none';
- loadConfig();
+ await loadConfig();
  loadPreview();
  } else {
  toast(t('apikey_invalid'));
@@ -3162,7 +3166,7 @@ function onDataDblClick(e) {
  if (val.trim()) {
  const newLabel = val.trim().substring(0, 8).toUpperCase();
  data.label = newLabel;
- fetch('/api/domains/' + data.configIndex, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:'label',value:newLabel})});
+ fetch('/api/domains/' + data.configIndex, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:'label',value:newLabel})}).catch(() => {});
  drawLED(data);
  }
  });
