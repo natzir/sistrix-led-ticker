@@ -161,7 +161,8 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
 
     # No API key, return cache only (if available)
     if not api_key or api_key == "TU_API_KEY_AQUI":
-        cached = cached if not force else read_cache(label, country, mode)
+        if force:
+            cached = read_cache(label, country, mode)
         if cached:
             return {**cached, "_from_cache": True}
         return None
@@ -1169,8 +1170,8 @@ const I18N = {
  loading_data:'Cargando datos de SISTRIX...', added:'Añadido',
  updated:'Actualizado', mode_changed:'Modo cambiado', deleted:'Eliminado',
  loading_dots:'Cargando...', fetching:'Pidiendo datos a SISTRIX...',
- data_updated:'Datos actualizados desde API', error_update:'Error al actualizar',
- confirm_delete:'¿Eliminar?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Añadirá los datos faltantes · Clic para confirmar', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', loading_data_short:'Cargando datos...',
+ data_updated:'Datos actualizados', no_changes:'Sin cambios', error_update:'Error al actualizar',
+ confirm_delete:'¿Eliminar?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Añadirá solo los datos faltantes · Clica de nuevo para confirmar', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', credits_used:'créditos consumidos', loading_data_short:'Cargando datos...',
  cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener', brand_or:'o', brand_saved:'Tarjeta personalizada guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
  edit:'Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
@@ -1187,8 +1188,8 @@ const I18N = {
  loading_data:'Loading SISTRIX data...', added:'Added',
  updated:'Updated', mode_changed:'Mode changed', deleted:'Deleted',
  loading_dots:'Loading...', fetching:'Fetching data from SISTRIX...',
- data_updated:'Data updated from API', error_update:'Update error',
- confirm_delete:'Delete?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Will add missing data · Click to confirm', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', loading_data_short:'Loading data...',
+ data_updated:'Data updated', no_changes:'No changes', error_update:'Update error',
+ confirm_delete:'Delete?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Will only add missing data · Click again to confirm', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', credits_used:'credits used', loading_data_short:'Loading data...',
  cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Fetch', brand_or:'or', brand_saved:'Personalized card saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
  edit:'Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
@@ -1205,8 +1206,8 @@ const I18N = {
  loading_data:'Chargement des données SISTRIX...', added:'Ajouté',
  updated:'Mis à jour', mode_changed:'Mode changé', deleted:'Supprimé',
  loading_dots:'Chargement...', fetching:'Récupération des données SISTRIX...',
- data_updated:'Données mises à jour depuis l\\'API', error_update:'Erreur de mise à jour',
- confirm_delete:'Supprimer ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ajoutera les données manquantes · Cliquez pour confirmer', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', loading_data_short:'Chargement...',
+ data_updated:'Données mises à jour', no_changes:'Aucun changement', error_update:'Erreur de mise à jour',
+ confirm_delete:'Supprimer ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ajoutera uniquement les données manquantes · Cliquez à nouveau pour confirmer', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', credits_used:'crédits consommés', loading_data_short:'Chargement...',
  cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir', brand_or:'ou', brand_saved:'Carte personnalisée enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
  edit:'Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
@@ -1223,8 +1224,8 @@ const I18N = {
  loading_data:'Caricamento dati SISTRIX...', added:'Aggiunto',
  updated:'Aggiornato', mode_changed:'Modalità cambiata', deleted:'Eliminato',
  loading_dots:'Caricamento...', fetching:'Recupero dati da SISTRIX...',
- data_updated:'Dati aggiornati dall\\'API', error_update:'Errore di aggiornamento',
- confirm_delete:'Eliminare?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Aggiungerà i dati mancanti · Clicca per confermare', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', loading_data_short:'Caricamento...',
+ data_updated:'Dati aggiornati', no_changes:'Nessuna modifica', error_update:'Errore di aggiornamento',
+ confirm_delete:'Eliminare?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Aggiungerà solo i dati mancanti · Clicca di nuovo per confermare', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', credits_used:'crediti consumati', loading_data_short:'Caricamento...',
  cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni', brand_or:'o', brand_saved:'Scheda personalizzata salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
  edit:'Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
@@ -1241,8 +1242,8 @@ const I18N = {
  loading_data:'Lade SISTRIX-Daten...', added:'Hinzugefügt',
  updated:'Aktualisiert', mode_changed:'Modus geändert', deleted:'Gelöscht',
  loading_dots:'Laden...', fetching:'Daten von SISTRIX abrufen...',
- data_updated:'Daten von API aktualisiert', error_update:'Fehler beim Aktualisieren',
- confirm_delete:'Löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Fehlende Daten werden hinzugefügt · Klicken zum Bestätigen', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', loading_data_short:'Lade Daten...',
+ data_updated:'Daten aktualisiert', no_changes:'Keine Änderungen', error_update:'Fehler beim Aktualisieren',
+ confirm_delete:'Löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Nur fehlende Daten werden hinzugefügt · Erneut klicken zum Bestätigen', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', credits_used:'Credits verbraucht', loading_data_short:'Lade Daten...',
  cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Laden', brand_or:'oder', brand_saved:'Personalisierte Karte gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
  edit:'Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
@@ -1259,8 +1260,8 @@ const I18N = {
  loading_data:'A carregar dados SISTRIX...', added:'Adicionado',
  updated:'Atualizado', mode_changed:'Modo alterado', deleted:'Eliminado',
  loading_dots:'A carregar...', fetching:'A obter dados do SISTRIX...',
- data_updated:'Dados atualizados da API', error_update:'Erro ao atualizar',
- confirm_delete:'Eliminar?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Adicionará os dados em falta · Clique para confirmar', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', loading_data_short:'A carregar dados...',
+ data_updated:'Dados atualizados', no_changes:'Sem alterações', error_update:'Erro ao atualizar',
+ confirm_delete:'Eliminar?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Adicionará apenas os dados em falta · Clique novamente para confirmar', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', credits_used:'créditos consumidos', loading_data_short:'A carregar dados...',
  cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter', brand_or:'ou', brand_saved:'Cartão personalizado guardado', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
  edit:'Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
@@ -1281,6 +1282,10 @@ let lastDomainHash = '';
 let sistrixCredits = null;
 
 function t(key) { return (I18N[currentLang] || I18N.en)[key] || (I18N.en)[key] || key; }
+function initFormSelects() {
+ initCustomSelect(DOM.newMode, [{value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}], DOM.newMode.value || 'weekly');
+ initCustomSelect(DOM.newType, [{value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}], DOM.newType.value || 'domain');
+}
 
 function applyI18n() {
  document.documentElement.lang = currentLang;
@@ -1310,8 +1315,7 @@ async function setLang(lang) {
  BL.msgSpeed.onchange = () => saveBrandLayout();
  if (currentConfig.domains) { lastDomainHash = ''; renderDomains(currentConfig.domains); }
  renderCycleBtns();
- initCustomSelect(DOM.newMode, [{value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}], DOM.newMode.value);
- initCustomSelect(DOM.newType, [{value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}], DOM.newType.value);
+ initFormSelects();
  updateStatusBar();
  if (totalSlides() > 0) renderSlide();
  postJSON('/api/language', {language:lang});
@@ -1429,8 +1433,7 @@ function drawLED(data) {
 
  // Value
  const vh = DL.valueH;
- let valueStr;
- valueStr = fmtValue(data.current_value);
+ const valueStr = fmtValue(data.current_value);
  drawText(valueStr, DL.valueX, DL.valueY, valueColor, DL.valueFont, vh);
 
  // Country
@@ -1884,13 +1887,9 @@ function renderSlide() {
  showingBrand = false;
  const d = previewData[currentIndex];
  drawLED(d);
- const status = DOM.previewStatus;
+ DOM.previewStatus.textContent = '';
  if (d) {
- let dom = d.domain.replace(/^https?:\/\//, '').replace(/"$/, '');
- if (dom.length > 45) dom = dom.substring(0, 42) + '…';
- const info = `${dom} ${(d.type || 'domain').toUpperCase()} ${d.country.toUpperCase()} ${d.mode === 'daily' ? 'D' : 'W'}`;
- status.textContent = info;
- canvas.setAttribute('aria-label', `${d.label}: ${d.current_value ?? ''} - ${info}`);
+ canvas.setAttribute('aria-label', `${d.label}: ${d.current_value ?? ''} - ${d.domain} ${d.country.toUpperCase()} ${d.mode === 'daily' ? 'D' : 'W'}`);
  }
  }
 }
@@ -1967,8 +1966,7 @@ function clickRefresh() {
  if (!btn) return;
  if (!_refreshArmed) {
  _refreshArmed = true;
- const creditsInfo = sistrixCredits != null ? ` (${sistrixCredits.toLocaleString('de-DE')} ${t('credits_available')})` : '';
- toast(`${t('refresh_confirm_short')}${creditsInfo}`);
+ toast(t('refresh_confirm_short'));
  btn.innerHTML = t('confirm_btn');
  btn.classList.add('armed');
  const resetBtn = () => { _refreshArmed = false; btn.innerHTML = t('refresh_btn'); btn.classList.remove('armed'); btn.blur(); btn.style.pointerEvents = 'none'; requestAnimationFrame(() => { btn.style.pointerEvents = ''; }); };
@@ -1984,11 +1982,23 @@ async function doRefresh() {
  if (btn) { btn.disabled = true; btn.textContent = t('loading_dots'); btn.classList.remove('armed'); }
  toast(t('fetching'), true);
  try {
+ const creditsBefore = sistrixCredits;
+ const snapshot = previewData.map(d => `${d.label}:${d.current_value}`).join('|');
  await updatePreviewData(false, true);
  await loadCacheStatus();
- // Update credits after refresh
- fetch('/api/credits').then(r => r.json()).then(d => { sistrixCredits = d.credits; updateStatusBar(); });
- toast(t('data_updated'));
+ const creditsRes = await fetch('/api/credits').then(r => r.json());
+ sistrixCredits = creditsRes.credits; updateStatusBar();
+ const newSnapshot = previewData.map(d => `${d.label}:${d.current_value}`).join('|');
+ if (snapshot === newSnapshot) {
+  toast(t('no_changes'));
+ } else {
+  let msg = t('data_updated');
+  if (creditsBefore != null && sistrixCredits != null) {
+   const used = creditsBefore - sistrixCredits;
+   msg += ` · ${used.toLocaleString('de-DE')} ${t('credits_used')} · ${sistrixCredits.toLocaleString('de-DE')} ${t('credits_available')}`;
+  }
+  toast(msg);
+ }
  } catch(e) {
  toast(t('error_update'));
  }
@@ -2089,8 +2099,7 @@ function applyConfig(config) {
  cycleTime = config.display.cycle_seconds * 1000;
  renderCycleBtns();
  renderDomains(config.domains);
- initCustomSelect(DOM.newMode, [{value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}], DOM.newMode.value);
- initCustomSelect(DOM.newType, [{value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}], DOM.newType.value);
+ initFormSelects();
  applyI18n();
  updateStatusBar();
  if (hasKey && sistrixCredits === null) {
@@ -2428,9 +2437,10 @@ async function saveApiKey() {
 }
 
 // ===== BRAND =====
+const DEFAULT_BRAND_LAYOUT = { logoX:1, logoY:1, logoSize:16, nameX:20, nameY:6, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:42, nameFont:'small', msgFont:'small' };
 let brandData = {};
 let brandLogoPixels = null;
-let brandLayout = { logoX:1, logoY:1, logoSize:16, nameX:20, nameY:6, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:42, nameFont:'small', msgFont:'small' };
+let brandLayout = { ...DEFAULT_BRAND_LAYOUT };
 
 function initBrandSelects() {
  const onChange = () => saveBrandLayout();
@@ -2699,7 +2709,6 @@ function stopMessageScroll() {
 
 // ===== GENERIC LAYOUT EDITOR =====
 let layoutEditMode = false;
-const DEFAULT_LAYOUT = { logoX:1, logoY:1, logoSize:16, nameX:20, nameY:6, nameH:7, nameScale:1, msgX:0, msgY:21, msgH:8, msgScale:1, nameColor:'#ffffff', msgColor:'rainbow', msgSpeed:42, nameFont:'small', msgFont:'small' };
 
 function createLayoutEditor(opts) {
  const st = { drag:null, resize:null, hover:null, dragOX:0, dragOY:0,
@@ -3199,8 +3208,7 @@ function getDataElementBounds(data) {
  const changeX = changeRight - cw;
  bounds.push({ id:'change', x:changeX, y:DL.changeY, w:cw, h:textHeight(cf, ch), fx:'changeX', fy:'changeY', resizable:true, hKey:'changeH', font:cf, color:'#ffaa00', overlayLabel:t('ed_diff') });
  const vf = DL.valueFont || 'large', valH = DL.valueH;
- let valueStr;
- valueStr = fmtValue(data.current_value);
+ const valueStr = fmtValue(data.current_value);
  const valW = measureText(valueStr, vf, valH);
  bounds.push({ id:'value', x:DL.valueX, y:DL.valueY, w:valW, h:textHeight(vf, valH), fx:'valueX', fy:'valueY', resizable:true, hKey:'valueH', font:vf, color:'#0a84ff', overlayLabel:t('ed_value') });
  const ctf = DL.countryFont || 'small', ctH = DL.countryH;
@@ -3297,7 +3305,7 @@ function toggleEdit() {
 
 async function resetCurrentLayout() {
  if (layoutEditMode) {
- Object.assign(brandLayout, DEFAULT_LAYOUT);
+ Object.assign(brandLayout, DEFAULT_BRAND_LAYOUT);
  BL_IDS.forEach(id => { const v = brandLayout[id]; BL[id].value = typeof v === 'number' ? String(v) : v; });
  await saveBrandLayout();
  drawBrandCard();
@@ -3320,9 +3328,10 @@ function initCustomSelect(container, options, defaultVal) {
  trigger.setAttribute('aria-haspopup', 'listbox');
  trigger.setAttribute('aria-expanded', 'false');
  trigger.setAttribute('tabindex', '0');
- const alabel = container.getAttribute('aria-label') || container.getAttribute('aria-labelledby');
- if (container.getAttribute('aria-label')) trigger.setAttribute('aria-label', container.getAttribute('aria-label'));
- else if (container.getAttribute('aria-labelledby')) trigger.setAttribute('aria-labelledby', container.getAttribute('aria-labelledby'));
+ const alabel = container.getAttribute('aria-label');
+ const alabelled = container.getAttribute('aria-labelledby');
+ if (alabel) trigger.setAttribute('aria-label', alabel);
+ else if (alabelled) trigger.setAttribute('aria-labelledby', alabelled);
  const dropdown = document.createElement('div');
  dropdown.className = 'custom-select-dropdown';
  dropdown.setAttribute('role', 'listbox');
@@ -3481,16 +3490,11 @@ async function loadCountries() {
 }
 
 // Init type and mode custom selects
-initCustomSelect(DOM.newType, [
- {value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}
-], 'domain');
 DOM.newType.onchange = () => {
  const placeholders = {domain:'example.com', host:'www.example.com', path:'example.com/blog/', url:'example.com/blog/post-1'};
  DOM.newDomain.placeholder = placeholders[DOM.newType.value] || 'example.com';
 };
-initCustomSelect(DOM.newMode, [
- {value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}
-], 'weekly');
+initFormSelects();
 
 // Init
 initCustomSelect(DOM.langSelect, [
