@@ -1325,7 +1325,7 @@
       ]
     ],
     "logo_source": "https://sistrix.com",
-    "name": "Sistrix",
+    "name": "SISTRIX",
     "message": "LED Ticker by Natzir",
     "enabled": true,
     "layout": {
@@ -1333,7 +1333,7 @@
       "logoY": 2,
       "logoSize": 16,
       "nameX": 20,
-      "nameY": 6,
+      "nameY": 7,
       "nameH": 7,
       "nameScale": 1,
       "msgX": 0,

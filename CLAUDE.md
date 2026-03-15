@@ -84,7 +84,7 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - **API key**: configurar y guardar (validación contra endpoint /credits)
 - **Display settings**: brillo, velocidad rotación, frecuencia refresco
 - **Caché status**: ver estado de datos cacheados (fresco/caducado/hace cuánto)
-- **i18n**: 6 idiomas (es, en, fr, it, de, pt)
+- **i18n completo**: 6 idiomas (es, en, fr, it, de, pt) — todos los labels, titles, tooltips, overlay editor, toasts, selects y botones traducidos. Idioma se aplica antes de renderizar contenido dinámico. Key `click_again_confirm` compartida entre delete y refresh.
 - **API REST**: todos los endpoints en /api/* para gestión programática
 - **Accesibilidad**: WCAG 2.1 AA (ARIA combobox/listbox, focus trapping, aria-live, keyboard navigation, touch targets)
 - **Performance**: gzip + ETag caching, unified `/api/init`, config mtime caching, debounced resize, visibility API polling
@@ -96,12 +96,14 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 - UI dark monospace con design tokens CSS (spacing, radius, colors)
 - Responsive: funciona en desktop y mobile (touch events, CLS optimizado, touch targets 44px)
 - **Footer**: enlace natzir.com + iconos sociales (X, LinkedIn, Email)
-- **Refresh con confirmación**: botón ACTUALIZAR → toast informativo + CONFIRMAR (sin CLS)
+- **Refresh con confirmación**: botón ACTUALIZAR → toast "Añadirá solo los datos faltantes · Clica de nuevo para confirmar" → resultado: "Sin cambios" o "Datos actualizados · X créditos consumidos · Y créditos disponibles"
 - **Toast notifications**: sistema de notificaciones con duración configurable (3.5s)
+- **Favicon**: LED verde SVG data URI
 - **Screen on/off**: botón ⏻ en panel header, muestra "⏻ OFF" rojo cuando apagado, sincronizado con display.py via config.json
-- **Delete con toast+confirm**: reemplaza `confirm()` nativo por patrón armed button (primer clic arma, segundo confirma)
+- **Delete con toast+confirm**: patrón armed button — "¿Eliminar LABEL? · Clica de nuevo para confirmar"
 - **Seguridad**: `_safe_config()` elimina API key de respuestas, `esc()` para XSS, `textContent` vs `innerHTML`
 - **Thread safety**: `copy.deepcopy()` en `load_config()`, `ThreadPoolExecutor` a nivel módulo
+- **config.default.json**: template limpio para nuevos usuarios (sin API key, sin dominios, brand card con logo Sistrix + "LED Ticker by Natzir" rainbow)
 
 ### config.json
 ```json
@@ -138,7 +140,11 @@ Respuesta: `answer[0].sichtbarkeitsindex` → array de `{date, value}`
 12. ✅ Screen on/off: web panel + display.py + GPIO button (GPIO26)
 13. ✅ Security: API key sanitization, XSS protection, thread safety
 14. ✅ Delete con toast+confirm, W3C validation clean
-15. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
+15. ✅ i18n completo: todos los labels, titles, tooltips, selects, overlays traducidos en 6 idiomas
+16. ✅ Refresh UX: no-changes detection, créditos consumidos/disponibles
+17. ✅ Code cleanup: dedup DEFAULT_BRAND_LAYOUT, initFormSelects(), unused params
+18. ✅ Bitmap font fixes: X y W corregidas en 5x7
+19. ⬜ Subir archivos a la Pi (scp) — PENDIENTE
 16. ⬜ Ejecutar setup.sh en la Pi — PENDIENTE
 17. ⬜ Comprar y montar hardware (panel + bonnet + carcasa) — PENDIENTE
 18. ⬜ Cablear botón físico a GPIO26 + GND — PENDIENTE
