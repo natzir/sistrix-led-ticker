@@ -406,10 +406,10 @@ def get_preview_data_internal(config, force=False, refresh=False):
 
 @app.route("/api/cache/status", methods=["GET"])
 def cache_status():
-    return jsonify(get_cache_status_internal(load_config()))
+    return jsonify(get_cache_status_internal())
 
 
-def get_cache_status_internal(config):
+def get_cache_status_internal():
     status = []
     if CACHE_DIR.exists():
         for f in sorted(CACHE_DIR.glob("*.json")):
@@ -669,7 +669,7 @@ def api_init():
     # Preview data
     preview = get_preview_data_internal(config)
     # Cache status
-    cache = get_cache_status_internal(config)
+    cache = get_cache_status_internal()
     # Brand
     brand = config.get("brand", {"name": "", "message": "", "logo": None, "enabled": True})
     brand_layout = brand.get("layout", {})
@@ -1558,8 +1558,8 @@ const F5x7 = {
  'T':'11111001000010000100001000010000000',
  'U':'10001100011000110001100010111000000',
  'V':'10001100011000110001010100010000000',
- 'W':'10001100011000110101101011000100000',
- 'X':'10001010100010001000101011000100000',
+ 'W':'10001100011000110101101010101000000',
+ 'X':'10001100010101000100010101000100000',
  'Y':'10001100010101000100001000010000000',
  'Z':'11111000010001000100010001111100000',
  '.':'00000000000000000000000000000000100',
