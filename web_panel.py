@@ -2999,6 +2999,28 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  popup.appendChild(grid);
  }
 
+ // Speed slider
+ if (opts.speed != null) {
+ const speedRow = document.createElement('div');
+ speedRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;';
+ const slowLabel = document.createElement('span');
+ slowLabel.textContent = t('bl_slow');
+ slowLabel.style.cssText = 'font-size:var(--text-xs);color:var(--dim);flex-shrink:0;';
+ const slider = document.createElement('input');
+ slider.type = 'range'; slider.min = '20'; slider.max = '120';
+ slider.value = String(140 - opts.speed);
+ slider.style.cssText = 'flex:1;accent-color:var(--accent);height:20px;';
+ const fastLabel = document.createElement('span');
+ fastLabel.textContent = t('bl_fast');
+ fastLabel.style.cssText = 'font-size:var(--text-xs);color:var(--dim);flex-shrink:0;';
+ speedRow.appendChild(slowLabel); speedRow.appendChild(slider); speedRow.appendChild(fastLabel);
+ popup.appendChild(speedRow);
+ slider.addEventListener('input', e => {
+  e.stopPropagation();
+  if (opts.onSpeed) opts.onSpeed(140 - parseInt(slider.value));
+ });
+ }
+
  mountPopup(popup, screenX, screenY);
  if (inp) {
  inp.focus(); inp.select();
@@ -3092,7 +3114,9 @@ function onBrandDblClick(e) {
  brandData.message = val; saveBrand(); drawBrandCard();
  }, {
  color: brandLayout.msgColor || '#00c853',
- onColor: c => { brandLayout.msgColor = c; if(BL.msgColor) BL.msgColor.value = c; saveBrandLayout(); drawBrandCard(); }
+ onColor: c => { brandLayout.msgColor = c; if(BL.msgColor) BL.msgColor.value = c; saveBrandLayout(); drawBrandCard(); },
+ speed: brandLayout.msgSpeed || 60,
+ onSpeed: v => { brandLayout.msgSpeed = v; if(BL.msgSpeed) BL.msgSpeed._value = String(v); saveBrandLayout(); }
  });
  } else if (hit.id === 'logo') {
  showLogoPopup(e.clientX, e.clientY);
