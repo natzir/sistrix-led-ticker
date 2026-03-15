@@ -309,10 +309,10 @@ def get_domain_or_404(config, index):
 @app.route("/api/domains/<int:index>", methods=["PUT"])
 def update_domain(index):
     config = load_config()
-    if not get_domain_or_404(config, index):
+    domain = get_domain_or_404(config, index)
+    if not domain:
         return jsonify({"error": "Invalid index"}), 404
     data = request.get_json(silent=True) or {}
-    domain = config["domains"][index]
     for key in ["active", "mode", "label", "domain", "country", "type"]:
         if key in data:
             if key == "active":
@@ -342,11 +342,12 @@ def delete_domain(index):
 @app.route("/api/domains/<int:index>/toggle", methods=["POST"])
 def toggle_domain(index):
     config = load_config()
-    if not get_domain_or_404(config, index):
+    domain = get_domain_or_404(config, index)
+    if not domain:
         return jsonify({"error": "Invalid index"}), 404
-    config["domains"][index]["active"] = not config["domains"][index]["active"]
+    domain["active"] = not domain["active"]
     save_config(config)
-    return jsonify({"ok": True, "domain": config["domains"][index]})
+    return jsonify({"ok": True, "domain": domain})
 
 
 @app.route("/api/domains/reorder", methods=["POST"])
@@ -456,22 +457,27 @@ def update_api_key():
         return jsonify({"ok": True, "credits": None})
     # Validate against SISTRIX credits endpoint (free, no credit cost)
     try:
-        resp = http_requests.get(
-            "https://api.sistrix.com/credits",
-            params={"api_key": key, "format": "json"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        result = resp.json()
-        credits_left = _parse_sistrix_credits(result)
-        if credits_left is None:
+        credits = _fetch_credits(key)
+        if credits is None:
             return jsonify({"ok": False, "error": "invalid_key"}), 401
         config["sistrix_api_key"] = key
         save_config(config)
-        return jsonify({"ok": True, "credits": int(float(credits_left))})
+        return jsonify({"ok": True, "credits": credits})
     except Exception as e:
         print(f"[API VALIDATE ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 401
+
+
+def _fetch_credits(api_key):
+    """Fetch credits from SISTRIX API. Returns int or None."""
+    resp = http_requests.get(
+        "https://api.sistrix.com/credits",
+        params={"api_key": api_key, "format": "json"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    credits_left = _parse_sistrix_credits(resp.json())
+    return int(float(credits_left)) if credits_left is not None else None
 
 
 @app.route("/api/credits")
@@ -481,15 +487,7 @@ def get_credits():
     if not key or key == "TU_API_KEY_AQUI":
         return jsonify({"credits": None})
     try:
-        resp = http_requests.get(
-            "https://api.sistrix.com/credits",
-            params={"api_key": key, "format": "json"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        result = resp.json()
-        credits_left = _parse_sistrix_credits(result)
-        return jsonify({"credits": int(float(credits_left)) if credits_left is not None else None})
+        return jsonify({"credits": _fetch_credits(key)})
     except Exception:
         return jsonify({"credits": None})
 
@@ -1090,7 +1088,7 @@ def _build_index_html():
  <button class="btn btn-small" onclick="saveApiKey()" data-i18n="save">Save</button>
  </div>
  </div>
- <button id="themeToggle" onclick="toggleTheme()" class="header-btn" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
+ <button id="themeToggle" onclick="toggleTheme()" class="header-btn" aria-label="Toggle theme">&#9790;</button>
  <div id="langSelect" class="custom-select custom-select-sm" style="width:60px;min-height:30px;" aria-label="Language"></div>
  </div>
 </header>
@@ -1117,7 +1115,7 @@ def _build_index_html():
  <div id="cycleBtns" role="group" aria-label="Rotation speed" style="display:flex;align-items:center;gap:4px;"></div>
  <div style="display:flex;gap:var(--space-3);margin-left:auto;">
  <button id="btnReset" onclick="resetCurrentLayout()" class="btn-outline" style="display:none;" aria-label="Reset layout" title="Reset layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 9 9"/><polyline points="3 7 3 12 8 12"/></svg></button>
- <button id="btnEdit" onclick="toggleEdit()" class="btn-outline" data-i18n="edit">&#9998; Edit</button>
+ <button id="btnEdit" onclick="toggleEdit()" class="btn-outline" data-i18n="edit">Edit</button>
  </div>
  </div>
  </div>
@@ -1174,10 +1172,13 @@ const I18N = {
  data_updated:'Datos actualizados desde API', error_update:'Error al actualizar',
  confirm_delete:'¿Eliminar?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Añadirá los datos faltantes · Clic para confirmar', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', loading_data_short:'Cargando datos...',
  cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener', brand_or:'o', brand_saved:'Tarjeta personalizada guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
- edit:'\u270E Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
+ edit:'Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  screen_off:'Apagar pantalla', screen_on:'Encender pantalla',
+ prev_slide:'Anterior', next_slide:'Siguiente',
+ toggle_theme:'Cambiar tema', play_pause:'Reproducir / Pausar', move_up:'Subir', move_down:'Bajar', cancel:'Cancelar', cycle_time:'Rotar cada {s}s', drag_reorder:'Arrastrar para reordenar', click_edit:'Clic para editar',
+ ed_chart:'GRÁFICO', ed_diff:'DIF', ed_value:'VALOR', ed_title:'NOMBRE', ed_message:'MENSAJE', ed_logo:'LOGO',
  },
  en: { sim_title:'Panel',
  last_update:'Updated', refresh_btn:'Refresh', confirm_btn:'Confirm', apikey_placeholder:'Your SISTRIX API key', save:'Save',
@@ -1189,10 +1190,13 @@ const I18N = {
  data_updated:'Data updated from API', error_update:'Update error',
  confirm_delete:'Delete?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Will add missing data · Click to confirm', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', loading_data_short:'Loading data...',
  cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Fetch', brand_or:'or', brand_saved:'Personalized card saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
- edit:'\u270E Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
+ edit:'Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
  screen_off:'Turn off screen', screen_on:'Turn on screen',
+ prev_slide:'Previous', next_slide:'Next',
+ toggle_theme:'Toggle theme', play_pause:'Play / Pause', move_up:'Move up', move_down:'Move down', cancel:'Cancel', cycle_time:'Rotate every {s}s', drag_reorder:'Drag to reorder', click_edit:'Click to edit',
+ ed_chart:'CHART', ed_diff:'DIFF', ed_value:'VALUE', ed_title:'NAME', ed_message:'MESSAGE', ed_logo:'LOGO',
  },
  fr: { sim_title:'Panel',
  last_update:'Mis à jour', refresh_btn:'Actualiser', confirm_btn:'Confirmer', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer',
@@ -1204,10 +1208,13 @@ const I18N = {
  data_updated:'Données mises à jour depuis l\\'API', error_update:'Erreur de mise à jour',
  confirm_delete:'Supprimer ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ajoutera les données manquantes · Cliquez pour confirmer', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', loading_data_short:'Chargement...',
  cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir', brand_or:'ou', brand_saved:'Carte personnalisée enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
- edit:'\u270E Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
+ edit:'Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
  screen_off:'Éteindre l\u2019écran', screen_on:'Allumer l\u2019écran',
+ prev_slide:'Précédent', next_slide:'Suivant',
+ toggle_theme:'Changer le thème', play_pause:'Lecture / Pause', move_up:'Monter', move_down:'Descendre', cancel:'Annuler', cycle_time:'Rotation toutes les {s}s', drag_reorder:'Glisser pour réorganiser', click_edit:'Cliquer pour éditer',
+ ed_chart:'GRAPHIQUE', ed_diff:'DIF', ed_value:'VALEUR', ed_title:'NOM', ed_message:'MESSAGE', ed_logo:'LOGO',
  },
  it: { sim_title:'Panel',
  last_update:'Aggiornato', refresh_btn:'Aggiorna', confirm_btn:'Conferma', apikey_placeholder:'La tua API key SISTRIX', save:'Salva',
@@ -1219,10 +1226,13 @@ const I18N = {
  data_updated:'Dati aggiornati dall\\'API', error_update:'Errore di aggiornamento',
  confirm_delete:'Eliminare?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Aggiungerà i dati mancanti · Clicca per confermare', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', loading_data_short:'Caricamento...',
  cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni', brand_or:'o', brand_saved:'Scheda personalizzata salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
- edit:'\u270E Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
+ edit:'Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
  screen_off:'Spegni schermo', screen_on:'Accendi schermo',
+ prev_slide:'Precedente', next_slide:'Successivo',
+ toggle_theme:'Cambia tema', play_pause:'Play / Pausa', move_up:'Sposta su', move_down:'Sposta giù', cancel:'Annulla', cycle_time:'Ruota ogni {s}s', drag_reorder:'Trascina per riordinare', click_edit:'Clicca per modificare',
+ ed_chart:'GRAFICO', ed_diff:'DIF', ed_value:'VALORE', ed_title:'NOME', ed_message:'MESSAGGIO', ed_logo:'LOGO',
  },
  de: { sim_title:'Panel',
  last_update:'Aktualisiert', refresh_btn:'Aktualisieren', confirm_btn:'Bestätigen', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'Speichern',
@@ -1234,10 +1244,13 @@ const I18N = {
  data_updated:'Daten von API aktualisiert', error_update:'Fehler beim Aktualisieren',
  confirm_delete:'Löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Fehlende Daten werden hinzugefügt · Klicken zum Bestätigen', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', loading_data_short:'Lade Daten...',
  cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Laden', brand_or:'oder', brand_saved:'Personalisierte Karte gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
- edit:'\u270E Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
+ edit:'Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
  screen_off:'Bildschirm ausschalten', screen_on:'Bildschirm einschalten',
+ prev_slide:'Zurück', next_slide:'Weiter',
+ toggle_theme:'Thema wechseln', play_pause:'Abspielen / Pause', move_up:'Nach oben', move_down:'Nach unten', cancel:'Abbrechen', cycle_time:'Alle {s}s wechseln', drag_reorder:'Ziehen zum Umsortieren', click_edit:'Klicken zum Bearbeiten',
+ ed_chart:'DIAGRAMM', ed_diff:'DIF', ed_value:'WERT', ed_title:'NAME', ed_message:'NACHRICHT', ed_logo:'LOGO',
  },
  pt: { sim_title:'Panel',
  last_update:'Atualizado', refresh_btn:'Atualizar', confirm_btn:'Confirmar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar',
@@ -1249,10 +1262,13 @@ const I18N = {
  data_updated:'Dados atualizados da API', error_update:'Erro ao atualizar',
  confirm_delete:'Eliminar?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Adicionará os dados em falta · Clique para confirmar', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', loading_data_short:'A carregar dados...',
  cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter', brand_or:'ou', brand_saved:'Cartão personalizado guardado', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
- edit:'\u270E Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
+ edit:'Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  screen_off:'Desligar ecrã', screen_on:'Ligar ecrã',
+ prev_slide:'Anterior', next_slide:'Seguinte',
+ toggle_theme:'Mudar tema', play_pause:'Reproduzir / Pausar', move_up:'Subir', move_down:'Descer', cancel:'Cancelar', cycle_time:'Rodar a cada {s}s', drag_reorder:'Arrastar para reordenar', click_edit:'Clicar para editar',
+ ed_chart:'GRÁFICO', ed_diff:'DIF', ed_value:'VALOR', ed_title:'NOME', ed_message:'MENSAGEM', ed_logo:'LOGO',
  },
 };
 
@@ -1274,6 +1290,13 @@ function applyI18n() {
  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
  el.placeholder = t(el.dataset.i18nPlaceholder);
  });
+ $('btnPrev').title = $('btnPrev').ariaLabel = t('prev_slide');
+ $('btnNext').title = $('btnNext').ariaLabel = t('next_slide');
+ $('themeToggle').title = $('themeToggle').ariaLabel = t('toggle_theme');
+ $('btnPlayPause').title = $('btnPlayPause').ariaLabel = t('play_pause');
+ $('btnReset').title = $('btnReset').ariaLabel = t('reset');
+ $('btnEdit').title = t('edit');
+ const pw = $('btnPower'); pw.title = pw.ariaLabel = screenOff ? t('screen_on') : t('screen_off');
 }
 
 async function setLang(lang) {
@@ -1286,6 +1309,9 @@ async function setLang(lang) {
  ], curSpeed);
  BL.msgSpeed.onchange = () => saveBrandLayout();
  if (currentConfig.domains) { lastDomainHash = ''; renderDomains(currentConfig.domains); }
+ renderCycleBtns();
+ initCustomSelect(DOM.newMode, [{value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}], DOM.newMode.value);
+ initCustomSelect(DOM.newType, [{value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}], DOM.newType.value);
  updateStatusBar();
  if (totalSlides() > 0) renderSlide();
  postJSON('/api/language', {language:lang});
@@ -1910,7 +1936,7 @@ async function toggleScreen() {
   stage.classList.add('screen-off');
   btn.classList.add('off');
   btn.textContent = '\u23FB ON';
-  btn.title = t('screen_on');
+  btn.title = btn.ariaLabel = t('screen_on');
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(offCanvas, 0, 0);
@@ -1918,7 +1944,7 @@ async function toggleScreen() {
   stage.classList.remove('screen-off');
   btn.classList.remove('off');
   btn.textContent = '\u23FB';
-  btn.title = t('screen_off');
+  btn.title = btn.ariaLabel = t('screen_off');
   renderCurrent();
   if (autoRotate) startRotation();
  }
@@ -2052,20 +2078,23 @@ function applyConfig(config) {
  dot.className = 'status-dot ' + (hasKey ? 'dot-green' : 'dot-red');
  $('btnApiKey').querySelector('.api-label').textContent = hasKey ? 'API' : 'Add API';
  if (!hasKey) sistrixCredits = null;
- cycleTime = config.display.cycle_seconds * 1000;
- renderCycleBtns();
- renderDomains(config.domains);
- updateStatusBar();
- if (hasKey && sistrixCredits === null) {
- fetch('/api/credits').then(r => r.json()).then(d => { sistrixCredits = d.credits; updateStatusBar(); });
- }
+ // Set language/theme BEFORE rendering dynamic content
  if (config.language && config.language !== currentLang) {
  currentLang = config.language;
  DOM.langSelect.value = currentLang;
- applyI18n();
  }
  if (config.theme && config.theme !== currentTheme) {
  applyTheme(config.theme);
+ }
+ cycleTime = config.display.cycle_seconds * 1000;
+ renderCycleBtns();
+ renderDomains(config.domains);
+ initCustomSelect(DOM.newMode, [{value:'weekly',text:t('mode_weekly')},{value:'daily',text:t('mode_daily')}], DOM.newMode.value);
+ initCustomSelect(DOM.newType, [{value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}], DOM.newType.value);
+ applyI18n();
+ updateStatusBar();
+ if (hasKey && sistrixCredits === null) {
+ fetch('/api/credits').then(r => r.json()).then(d => { sistrixCredits = d.credits; updateStatusBar(); });
  }
  if (config.data_layout) {
  Object.assign(dataLayout, config.data_layout);
@@ -2081,13 +2110,13 @@ function applyConfig(config) {
   displayCtx.drawImage(offCanvas, 0, 0);
   btn.classList.add('off');
   btn.textContent = '\u23FB ON';
-  btn.title = t('screen_on');
+  btn.title = btn.ariaLabel = t('screen_on');
   document.querySelector('.led-stage').classList.add('screen-off');
  } else if (!wasOff && screenOff) {
   screenOff = false;
   btn.classList.remove('off');
   btn.textContent = '\u23FB';
-  btn.title = t('screen_off');
+  btn.title = btn.ariaLabel = t('screen_off');
   document.querySelector('.led-stage').classList.remove('screen-off');
  }
 }
@@ -2103,18 +2132,18 @@ function renderDomains(domains) {
  DOM.domainList.innerHTML = domains.map((d, i) => {
  return `
  <div class="domain-card ${d.active ? '' : 'inactive'}" id="dcard-${i}" data-index="${i}">
- <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
+ <span class="drag-handle" title="${t('drag_reorder')}" aria-hidden="true">⠿</span>
  <span class="reorder-btns" role="group" aria-label="Reorder">
- <button class="btn-reorder" onclick="moveDomain(${i},-1)" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>▲</button>
- <button class="btn-reorder" onclick="moveDomain(${i},1)" aria-label="Move down" ${i === domains.length - 1 ? 'disabled' : ''}>▼</button>
+ <button class="btn-reorder" onclick="moveDomain(${i},-1)" aria-label="${t('move_up')}" title="${t('move_up')}" ${i === 0 ? 'disabled' : ''}>▲</button>
+ <button class="btn-reorder" onclick="moveDomain(${i},1)" aria-label="${t('move_down')}" title="${t('move_down')}" ${i === domains.length - 1 ? 'disabled' : ''}>▼</button>
  </span>
- <span class="domain-label clickable" onclick="editDomain(${i})" onkeydown="if(event.key==='Enter')editDomain(${i})" tabindex="0" role="button" title="Click to edit">${esc(d.label)}</span>
+ <span class="domain-label clickable" onclick="editDomain(${i})" onkeydown="if(event.key==='Enter')editDomain(${i})" tabindex="0" role="button" title="${t('click_edit')}">${esc(d.label)}</span>
  <span class="domain-info clickable" onclick="editDomain(${i})" onkeydown="if(event.key==='Enter')editDomain(${i})" tabindex="0" role="button" title="${esc(d.domain)}">${esc(d.domain.replace(/^https?:\/\//, ''))}</span>
- <span class="domain-type-tag">${esc(d.type || 'domain')}</span>
+ <span class="domain-type-tag">${(d.type || 'domain') === 'domain' ? t('domain') : esc(d.type)}</span>
  <span class="domain-country-tag">${esc(d.country.toUpperCase())}</span>
  <button class="domain-mode mode-${esc(d.mode)}" onclick="toggleMode(${i},'${esc(d.mode)}')">${t('mode_'+d.mode)}</button>
- <button class="toggle-btn toggle-sm ${d.active ? 'on' : 'off'}" onclick="toggleDomain(${i})" aria-label="${d.active ? t('disable') : t('enable')} ${esc(d.label)}" role="switch" aria-checked="${d.active}"></button>
- <button class="btn-icon btn-icon-danger" onclick="deleteDomain(${i})" aria-label="${t('confirm_delete')} ${esc(d.label)}">✕</button>
+ <button class="toggle-btn toggle-sm ${d.active ? 'on' : 'off'}" onclick="toggleDomain(${i})" aria-label="${d.active ? t('disable') : t('enable')} ${esc(d.label)}" title="${d.active ? t('disable') : t('enable')}" role="switch" aria-checked="${d.active}"></button>
+ <button class="btn-icon btn-icon-danger" onclick="deleteDomain(${i})" aria-label="${t('confirm_delete')} ${esc(d.label)}" title="${t('confirm_delete')}">✕</button>
  </div>`;
  }).join('');
  initDragAndDrop();
@@ -2242,7 +2271,7 @@ function editDomain(i) {
   <div id="ed-country-${i}" class="custom-select" style="width:70px;flex-shrink:0;"></div>
   <div id="ed-mode-${i}" class="custom-select" style="width:90px;flex-shrink:0;"></div>
   <button class="btn btn-small" onclick="saveDomainEdit(${i})" style="flex:0 0 auto;" data-i18n="save">${t('save')}</button>
-  <button class="btn-icon btn-icon-danger" onclick="cancelEdit()" aria-label="Cancel" style="flex:0 0 auto;">✕</button>
+  <button class="btn-icon btn-icon-danger" onclick="cancelEdit()" title="${t('cancel')}" aria-label="${t('cancel')}" style="flex:0 0 auto;">✕</button>
  </div>
  </div>
  `;
@@ -2342,7 +2371,7 @@ async function addDomain() {
 const CYCLE_OPTIONS = [5, 10, 15];
 function renderCycleBtns() {
  const html = CYCLE_OPTIONS.map(s =>
- `<button class="btn-outline${cycleTime === s * 1000 ? ' active' : ''}" onclick="setCycle(${s})" aria-pressed="${cycleTime === s * 1000}">${s}s</button>`
+ `<button class="btn-outline${cycleTime === s * 1000 ? ' active' : ''}" onclick="setCycle(${s})" aria-pressed="${cycleTime === s * 1000}" title="${t('cycle_time').replace('{s}', s)}">${s}s</button>`
  ).join('');
  if (DOM.cycleBtns.innerHTML !== html) DOM.cycleBtns.innerHTML = html;
 }
@@ -2835,19 +2864,19 @@ function createLayoutEditor(opts) {
 function getElementBounds() {
  const L = brandLayout, bounds = [];
  if (brandLogoPixels || layoutEditMode) {
- bounds.push({ id:'logo', x:L.logoX, y:L.logoY, w:L.logoSize, h:L.logoSize, fx:'logoX', fy:'logoY', resizable:true, sizeKey:'logoSize', color:'#0a84ff', overlayLabel:'LOGO' });
+ bounds.push({ id:'logo', x:L.logoX, y:L.logoY, w:L.logoSize, h:L.logoSize, fx:'logoX', fy:'logoY', resizable:true, sizeKey:'logoSize', color:'#0a84ff', overlayLabel:t('ed_logo') });
  }
- const name = (brandData.name || '').toUpperCase() || (layoutEditMode ? 'TITLE' : '');
+ const name = (brandData.name || '').toUpperCase() || (layoutEditMode ? t('ed_title') : '');
  if (name) {
  const f = L.nameFont || 'small', nh = L.nameH;
- bounds.push({ id:'name', x:L.nameX, y:L.nameY, w:measureText(name,f,nh), h:textHeight(f,nh), fx:'nameX', fy:'nameY', resizable:true, hKey:'nameH', font:f, color:'#ffffff', overlayLabel:'TITLE' });
+ bounds.push({ id:'name', x:L.nameX, y:L.nameY, w:measureText(name,f,nh), h:textHeight(f,nh), fx:'nameX', fy:'nameY', resizable:true, hKey:'nameH', font:f, color:'#ffffff', overlayLabel:t('ed_title') });
  }
  const msg = (brandData.message || '').toUpperCase() || (layoutEditMode ? 'MESSAGE' : '');
  if (msg) {
  const mf = L.msgFont || 'small', mh = L.msgH;
  const mw = measureText(msg, mf, mh), mx = L.msgX || 0;
  const dx = (mw <= LED_W && mx === 0) ? Math.floor((LED_W - mw) / 2) : mx;
- bounds.push({ id:'msg', x:dx, y:L.msgY, w:Math.min(mw, LED_W), h:textHeight(mf,mh), fx:'msgX', fy:'msgY', resizable:true, hKey:'msgH', font:mf, color:'#00c853', overlayLabel:'MSG' });
+ bounds.push({ id:'msg', x:dx, y:L.msgY, w:Math.min(mw, LED_W), h:textHeight(mf,mh), fx:'msgX', fy:'msgY', resizable:true, hKey:'msgH', font:mf, color:'#00c853', overlayLabel:t('ed_message') });
  }
  return bounds;
 }
@@ -3156,28 +3185,28 @@ function getDataElementBounds(data) {
  if (!data) return [];
  const DL = dataLayout, bounds = [];
  const lf = DL.labelFont || 'small', lh = DL.labelH;
- bounds.push({ id:'label', x:DL.labelX, y:DL.labelY, w:measureText(data.label, lf, lh), h:textHeight(lf, lh), fx:'labelX', fy:'labelY', resizable:true, hKey:'labelH', font:lf, color:'#ffffff', overlayLabel:'LABEL' });
+ bounds.push({ id:'label', x:DL.labelX, y:DL.labelY, w:measureText(data.label, lf, lh), h:textHeight(lf, lh), fx:'labelX', fy:'labelY', resizable:true, hKey:'labelH', font:lf, color:'#ffffff', overlayLabel:t('label').toUpperCase() });
  const mf = DL.modeFont || 'small', mh = DL.modeH;
  const modeChar = data.mode === 'daily' ? 'D' : 'W';
  const labelW = measureText(data.label, lf, lh);
  const modeX = (DL.modeX != null) ? DL.modeX : (DL.labelX + labelW + 1);
- bounds.push({ id:'mode', x:modeX, y:DL.modeY, w:measureText(modeChar, mf, mh), h:textHeight(mf, mh), fx:'modeX', fy:'modeY', resizable:true, hKey:'modeH', font:mf, color:'#999999', overlayLabel:'MODE' });
+ bounds.push({ id:'mode', x:modeX, y:DL.modeY, w:measureText(modeChar, mf, mh), h:textHeight(mf, mh), fx:'modeX', fy:'modeY', resizable:true, hKey:'modeH', font:mf, color:'#999999', overlayLabel:t('mode').toUpperCase() });
  const cf = DL.changeFont || 'small', ch = DL.changeH;
  const changeStr = fmtChange(data.change_pct);
  const cw = measureText(changeStr, cf, ch);
  const modeW = measureText(modeChar, mf, mh);
  const changeRight = (DL.changeX != null) ? (DL.changeX + cw) : (LED_W - 1);
  const changeX = changeRight - cw;
- bounds.push({ id:'change', x:changeX, y:DL.changeY, w:cw, h:textHeight(cf, ch), fx:'changeX', fy:'changeY', resizable:true, hKey:'changeH', font:cf, color:'#ffaa00', overlayLabel:'%' });
+ bounds.push({ id:'change', x:changeX, y:DL.changeY, w:cw, h:textHeight(cf, ch), fx:'changeX', fy:'changeY', resizable:true, hKey:'changeH', font:cf, color:'#ffaa00', overlayLabel:t('ed_diff') });
  const vf = DL.valueFont || 'large', valH = DL.valueH;
  let valueStr;
  valueStr = fmtValue(data.current_value);
  const valW = measureText(valueStr, vf, valH);
- bounds.push({ id:'value', x:DL.valueX, y:DL.valueY, w:valW, h:textHeight(vf, valH), fx:'valueX', fy:'valueY', resizable:true, hKey:'valueH', font:vf, color:'#0a84ff', overlayLabel:'VALUE' });
+ bounds.push({ id:'value', x:DL.valueX, y:DL.valueY, w:valW, h:textHeight(vf, valH), fx:'valueX', fy:'valueY', resizable:true, hKey:'valueH', font:vf, color:'#0a84ff', overlayLabel:t('ed_value') });
  const ctf = DL.countryFont || 'small', ctH = DL.countryH;
  const countryX = (DL.countryX != null) ? DL.countryX : (DL.valueX + valW + 2);
- bounds.push({ id:'country', x:countryX, y:DL.countryY, w:measureText(data.country.toUpperCase(), ctf, ctH), h:textHeight(ctf, ctH), fx:'countryX', fy:'countryY', resizable:true, hKey:'countryH', font:ctf, color:'#888888', overlayLabel:'CC' });
- bounds.push({ id:'spark', x:1, y:DL.sparkY, w:LED_W-2, h:DL.sparkH, fx:null, fy:'sparkY', resizable:true, hKey:'sparkH', resizeMin:4, color:'#00c853', overlayLabel:'CHART' });
+ bounds.push({ id:'country', x:countryX, y:DL.countryY, w:measureText(data.country.toUpperCase(), ctf, ctH), h:textHeight(ctf, ctH), fx:'countryX', fy:'countryY', resizable:true, hKey:'countryH', font:ctf, color:'#888888', overlayLabel:t('country').toUpperCase() });
+ bounds.push({ id:'spark', x:1, y:DL.sparkY, w:LED_W-2, h:DL.sparkH, fx:null, fy:'sparkY', resizable:true, hKey:'sparkH', resizeMin:4, color:'#00c853', overlayLabel:t('ed_chart') });
  return bounds;
 }
 
@@ -3453,7 +3482,7 @@ async function loadCountries() {
 
 // Init type and mode custom selects
 initCustomSelect(DOM.newType, [
- {value:'domain',text:'Domain'},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}
+ {value:'domain',text:t('domain')},{value:'host',text:'Host'},{value:'path',text:'Path'},{value:'url',text:'URL'}
 ], 'domain');
 DOM.newType.onchange = () => {
  const placeholders = {domain:'example.com', host:'www.example.com', path:'example.com/blog/', url:'example.com/blog/post-1'};

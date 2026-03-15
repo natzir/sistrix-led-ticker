@@ -319,11 +319,10 @@ def render_frame(vd: VisibilityData) -> Image.Image:
     dim = (100, 100, 100)
 
     # --- Line 1: Label + mode + change % ---
-    label_with_mode = f"{vd.label}"
-    draw.text((1, 0), label_with_mode, fill=white, font=fonts["small"])
+    draw.text((1, 0), vd.label, fill=white, font=fonts["small"])
 
     # Mode indicator (D/W) in dim
-    lw = draw.textbbox((0, 0), label_with_mode, font=fonts["small"])[2]
+    lw = draw.textbbox((0, 0), vd.label, font=fonts["small"])[2]
     draw.text((lw + 2, 0), vd.mode_label, fill=dim, font=fonts["small"])
 
     # Change % right-aligned
