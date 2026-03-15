@@ -813,6 +813,7 @@ def _build_index_html():
  }
  .led-status-row { display:flex; justify-content:space-between; align-items:center; min-height:24px; max-width:100%; }
  .btn-power { background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer; font-size:var(--text-sm); border-radius:var(--radius-sm); padding:0 var(--space-3); height:24px; display:inline-flex; align-items:center; font-family:inherit; transition:all 0.2s; position:relative; flex-shrink:0; margin-left:var(--space-3); }
+ @media (hover:none) { .btn-power::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; } }
  .btn-power:hover { border-color:var(--accent); color:var(--accent); }
  .btn-power.off { border-color:var(--red); color:var(--red); }
  .led-outer {
@@ -1893,9 +1894,11 @@ async function toggleScreen() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(offCanvas, 0, 0);
   btn.classList.add('off');
+  btn.textContent = '\u23FB OFF';
   btn.title = t('screen_on');
  } else {
   btn.classList.remove('off');
+  btn.textContent = '\u23FB';
   btn.title = t('screen_off');
   renderCurrent();
   if (autoRotate) startRotation();
@@ -2055,10 +2058,12 @@ function applyConfig(config) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(offCanvas, 0, 0);
   btn.classList.add('off');
+  btn.textContent = '\u23FB OFF';
   btn.title = t('screen_on');
  } else if (!wasOff && screenOff) {
   screenOff = false;
   btn.classList.remove('off');
+  btn.textContent = '\u23FB';
   btn.title = t('screen_off');
  }
 }
@@ -2529,12 +2534,8 @@ let scrollRAF = null;
 let scrollLastTime = 0;
 
 function drawBrandDisabled() {
- const bg = '#000';
- ctx.fillStyle = bg;
+ ctx.fillStyle = '#000';
  ctx.fillRect(0, 0, canvas.width, canvas.height);
- const dim = '#333';
- const w = measureText('OFF', 'large');
- drawText('OFF', Math.floor((LED_W - w) / 2), Math.floor((LED_H - 7) / 2), dim, 'large');
  flushPixels();
 }
 

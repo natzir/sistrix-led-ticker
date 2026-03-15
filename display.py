@@ -76,11 +76,56 @@ class Config:
         return self._data.get("domains", [])
 
     @property
+    def screen_off(self) -> bool:
+        return self._data.get("display", {}).get("screen_off", False)
+
+    @property
     def active_domains(self) -> list:
         return [d for d in self.all_domains if d.get("active", False)]
 
+    def set_screen_off(self, value: bool):
+        """Write screen_off to config.json (used by GPIO button)."""
+        try:
+            with open(CONFIG_PATH) as f:
+                data = json.load(f)
+            data.setdefault("display", {})["screen_off"] = value
+            with open(CONFIG_PATH, "w") as f:
+                json.dump(data, f, indent=2)
+            self._data = data
+            self._last_mtime = os.path.getmtime(CONFIG_PATH)
+            print(f"[SCREEN] {'OFF' if value else 'ON'}")
+        except Exception as e:
+            print(f"[ERROR] set_screen_off: {e}")
+
 
 config = Config()
+
+
+# ============================================================
+# GPIO BUTTON (physical on/off)
+# ============================================================
+
+BUTTON_GPIO = 26  # GPIO26 — free pin not used by Adafruit Bonnet
+
+try:
+    import RPi.GPIO as GPIO
+    HAS_GPIO = True
+except ImportError:
+    HAS_GPIO = False
+
+def _button_pressed(channel):
+    """Callback for physical button press — toggles screen_off."""
+    config.reload()
+    config.set_screen_off(not config.screen_off)
+
+def setup_button():
+    if not HAS_GPIO:
+        print("[INFO] RPi.GPIO not available — no physical button support")
+        return
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(BUTTON_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(BUTTON_GPIO, GPIO.FALLING, callback=_button_pressed, bouncetime=300)
+    print(f"[BUTTON] GPIO{BUTTON_GPIO} configured (press to toggle screen)")
 
 # ============================================================
 # DATA MODEL
@@ -387,18 +432,26 @@ def main():
         sys.exit(1)
 
     matrix = setup_matrix()
+    setup_button()
     domains_data: list[VisibilityData] = []
     last_fetch = datetime.min
+    black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
 
     # Show loading screen
     display_frame(matrix, render_loading())
 
     while True:
+        config.reload()
         now = datetime.now()
+
+        # Screen off — show black, skip everything
+        if config.screen_off:
+            display_frame(matrix, black_frame)
+            time.sleep(1)
+            continue
 
         # Reload config and data if due
         if (now - last_fetch).total_seconds() > config.refresh_minutes * 60:
-            config.reload()
             print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
             new_data = fetch_all_active()
 
@@ -418,8 +471,12 @@ def main():
 
         # Cycle through active domains
         for vd in domains_data:
-            # Reload config each cycle (in case domains are added/removed)
             config.reload()
+
+            # Check screen_off mid-cycle
+            if config.screen_off:
+                display_frame(matrix, black_frame)
+                break
 
             img = render_frame(vd)
             display_frame(matrix, img)
