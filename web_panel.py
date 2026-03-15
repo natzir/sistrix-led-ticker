@@ -706,7 +706,7 @@ def _build_index_html():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<title>SISTRIX LED Ticker</title>
+<title>SISTRIX LED Ticker by Natzir</title>
 <style>
  /* ===== DESIGN TOKENS ===== */
  :root {
@@ -775,8 +775,8 @@ def _build_index_html():
  min-height: 100vh; padding: var(--space-7);
  overflow-x: hidden; max-width: 100vw;
  }
- h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:3px; color:var(--accent); margin-bottom:var(--space-4); }
- .subtitle { font-size:var(--text-sm); color:var(--dim); margin-bottom:var(--space-9); }
+ h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:3px; color:var(--accent); margin-bottom:0; }
+ header { margin-bottom:var(--space-7); }
  .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); overflow:hidden; }
  .section-title, h2.section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; font-weight:normal; }
 
@@ -913,9 +913,17 @@ def _build_index_html():
  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
 
- .status-bar { display:flex; gap:var(--space-6); font-size:var(--text-sm); color:var(--dim); margin-top:var(--space-7); flex-wrap:wrap; align-items:center; min-height:40px; }
- .status-bar .btn-refresh { font-size:var(--text-xs); padding:var(--space-1) var(--space-4); border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:1px; font-weight:bold; flex-shrink:0; white-space:nowrap; }
- .status-bar .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
+ .domain-status-inline { font-size:var(--text-xs); color:var(--dim); font-weight:normal; text-transform:none; letter-spacing:0; display:inline-flex; align-items:center; gap:var(--space-3); white-space:nowrap; }
+ .domain-status-inline .btn-refresh { font-size:var(--text-xs); padding:0 var(--space-4); height:34px; border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; text-transform:uppercase; letter-spacing:1px; font-weight:bold; white-space:nowrap; position:relative; display:inline-flex; align-items:center; box-sizing:border-box; }
+ .domain-status-inline .btn-refresh::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; }
+ .domain-status-inline .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
+ .domain-status-inline .btn-refresh.armed { border-color:var(--accent); color:var(--accent); }
+ .site-footer { margin-top:var(--space-9); padding:var(--space-5) 0; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:center; gap:12px; font-size:var(--text-xs); color:var(--dim); }
+ .footer-site { color:var(--dim); text-decoration:none; transition:color 0.15s; }
+ .footer-site:hover { color:var(--accent); }
+ .footer-icon { color:var(--dim); display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; transition:color 0.15s; position:relative; }
+ .footer-icon::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; }
+ .footer-icon:hover { color:var(--accent); }
  .status-dot { display:inline-block; width:var(--space-3); height:var(--space-3); border-radius:50%; margin-right:var(--space-2); }
  .dot-green { background:var(--accent); }
  .dot-red { background:var(--red); }
@@ -943,7 +951,7 @@ def _build_index_html():
  .section .btn { width:100%; text-align:center; }
  .edit-row .btn, .edit-row .btn-icon { width:auto; flex:0 0 auto; }
  .edit-row .btn-icon { width:34px; height:34px; min-width:34px; min-height:34px; }
- .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:var(--space-5); }
+ .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:auto; }
  }
  /* Custom dropdown (countries) */
  .custom-select { position:relative; width:100%; min-height:34px; }
@@ -988,7 +996,7 @@ def _build_index_html():
  #ledCanvas.edit-mode.dragging { cursor:grabbing; }
  .btn-outline.active { background:var(--accent); color:black; border-color:var(--accent); }
 
- .toast { position:fixed; bottom:var(--space-7); right:var(--space-7); background:var(--accent); color:var(--toast-text); padding:var(--space-4) var(--space-7); border-radius:var(--radius-md); font-size:var(--text-sm); font-weight:bold; transform:translateY(80px); transition:transform 0.3s; z-index:100; }
+ .toast { position:fixed; bottom:var(--space-7); right:var(--space-7); background:var(--accent); color:var(--toast-text); padding:var(--space-4) var(--space-7); border-radius:var(--radius-md); font-size:var(--text-sm); font-weight:bold; transform:translateY(80px); transition:transform 0.3s; z-index:100; max-width:calc(100vw - 2 * var(--space-7)); box-sizing:border-box; }
  .toast.show { transform:translateY(0); }
 
  /* Inline edit popup for canvas elements */
@@ -1003,9 +1011,14 @@ def _build_index_html():
  .led-edit-popup .color-swatch::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); min-width:44px; min-height:44px; }
  .led-edit-popup .color-swatch:hover { border-color:var(--text); transform:scale(1.15); }
  .led-edit-popup .color-swatch.active { border-color:var(--accent); }
+ .led-edit-popup .color-custom-dot { width:24px; height:24px; border-radius:var(--radius-sm); border:2px dashed var(--border); cursor:pointer; transition:border-color 0.15s, transform 0.15s; }
+ .led-edit-popup .color-custom-dot:hover { border-color:var(--text); transform:scale(1.15); }
  .led-edit-popup .color-swatch.rainbow { background:linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff); }
- .led-edit-popup .color-custom { display:flex; align-items:center; gap:var(--space-2); font-size:var(--text-xs); color:var(--dim); cursor:pointer; }
- .led-edit-popup .color-custom-dot { width:24px; height:24px; border-radius:var(--radius-sm); border:2px solid var(--border); cursor:pointer; }
+ .led-edit-popup .gradient-expand { display:flex; align-items:center; gap:6px; width:100%; padding-top:4px; }
+ .led-edit-popup .gradient-color-input { width:24px; height:24px; border:2px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; padding:0; background:none; flex-shrink:0; }
+ .led-edit-popup .gradient-color-input::-webkit-color-swatch-wrapper { padding:0; }
+ .led-edit-popup .gradient-color-input::-webkit-color-swatch { border:none; border-radius:2px; }
+ .led-edit-popup .gradient-arrow { color:var(--dim); font-size:12px; flex-shrink:0; }
 
 
  /* Reusable form classes */
@@ -1031,12 +1044,7 @@ def _build_index_html():
 <header style="display:flex;justify-content:space-between;align-items:start;">
  <div>
  <h1>SISTRIX LED Ticker</h1>
- <p class="subtitle" style="display:flex;align-items:center;gap:8px;">
- <span>by <a href="https://natzir.com" target="_blank" style="color:var(--accent);text-decoration:none;">Natzir</a></span>
- <a href="https://x.com/natzir9" target="_blank" title="X / Twitter" aria-label="X / Twitter" class="social-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
- <a href="https://www.linkedin.com/in/natzir/" target="_blank" title="LinkedIn" aria-label="LinkedIn" class="social-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
- <a href="mailto:hola@natzir.com" title="hola@natzir.com" aria-label="Email" class="social-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/><path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/></svg></a>
- </p>
+ <p style="font-size:var(--text-sm);color:var(--dim);margin:0;">by <a href="https://natzir.com" target="_blank" style="color:var(--accent);text-decoration:none;">Natzir</a></p>
  </div>
  <div style="display:flex;gap:8px;align-items:center;" role="toolbar" aria-label="Settings">
  <div style="position:relative;">
@@ -1097,7 +1105,7 @@ def _build_index_html():
  <div class="col-config">
  <!-- DOMAINS -->
  <div class="section">
- <h2 class="section-title" data-i18n="domains_title">Domains</h2>
+ <h2 class="section-title"><span data-i18n="domains_title">Domains</span><span id="domainStatus" class="domain-status-inline"></span></h2>
  <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
  <form class="add-form" onsubmit="event.preventDefault();addDomain()">
  <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8" required aria-required="true"></div>
@@ -1111,14 +1119,19 @@ def _build_index_html():
  </div>
 </main>
 
-<footer class="status-bar" id="statusBar" role="status"></footer>
+<footer class="site-footer">
+ <a href="https://natzir.com" target="_blank" class="footer-site">natzir.com</a>
+ <a href="https://x.com/natzir9" target="_blank" title="@natzir9" aria-label="X / Twitter" class="footer-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+ <a href="https://www.linkedin.com/in/natzir/" target="_blank" title="LinkedIn" aria-label="LinkedIn" class="footer-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+ <a href="mailto:hola@natzir.com" title="hola@natzir.com" aria-label="Email" class="footer-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/><path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/></svg></a>
+</footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 // ===== I18N =====
 const I18N = {
  es: { sim_title:'Panel',
- last_update:'Última comprobación:', refresh_btn:'Actualizar', apikey_placeholder:'Tu API key de SISTRIX', save:'Guardar',
+ last_update:'Actualizado', refresh_btn:'Actualizar', confirm_btn:'Confirmar', apikey_placeholder:'Tu API key de SISTRIX', save:'Guardar',
  domains_title:'Direcciones', domain:'Dominio', country:'País', mode:'Modo', type:'Tipo', address:'Dirección',
  domain_placeholder:'ejemplo.com', add:'+ Añadir', active_domains:'direcciones activas',
  loading_data:'Cargando datos de SISTRIX...', added:'Añadido',
@@ -1132,7 +1145,7 @@ const I18N = {
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  },
  en: { sim_title:'Panel',
- last_update:'Last check:', refresh_btn:'Refresh', apikey_placeholder:'Your SISTRIX API key', save:'Save',
+ last_update:'Updated', refresh_btn:'Refresh', confirm_btn:'Confirm', apikey_placeholder:'Your SISTRIX API key', save:'Save',
  domains_title:'Addresses', domain:'Domain', country:'Country', mode:'Mode', type:'Type', address:'Address',
  domain_placeholder:'example.com', add:'+ Add', active_domains:'active addresses',
  loading_data:'Loading SISTRIX data...', added:'Added',
@@ -1146,7 +1159,7 @@ const I18N = {
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
  },
  fr: { sim_title:'Panel',
- last_update:'Dernière vérif.:', refresh_btn:'Actualiser', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer',
+ last_update:'Mis à jour', refresh_btn:'Actualiser', confirm_btn:'Confirmer', apikey_placeholder:'Votre clé API SISTRIX', save:'Enregistrer',
  domains_title:'Adresses', domain:'Domaine', country:'Pays', mode:'Mode', type:'Type', address:'Adresse',
  domain_placeholder:'exemple.com', add:'+ Ajouter', active_domains:'adresses actives',
  loading_data:'Chargement des données SISTRIX...', added:'Ajouté',
@@ -1160,7 +1173,7 @@ const I18N = {
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
  },
  it: { sim_title:'Panel',
- last_update:'Ultimo controllo:', refresh_btn:'Aggiorna', apikey_placeholder:'La tua API key SISTRIX', save:'Salva',
+ last_update:'Aggiornato', refresh_btn:'Aggiorna', confirm_btn:'Conferma', apikey_placeholder:'La tua API key SISTRIX', save:'Salva',
  domains_title:'Indirizzi', domain:'Dominio', country:'Paese', mode:'Modalità', type:'Tipo', address:'Indirizzo',
  domain_placeholder:'esempio.com', add:'+ Aggiungi', active_domains:'indirizzi attivi',
  loading_data:'Caricamento dati SISTRIX...', added:'Aggiunto',
@@ -1174,7 +1187,7 @@ const I18N = {
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
  },
  de: { sim_title:'Panel',
- last_update:'Letzte Prüfung:', refresh_btn:'Aktualisieren', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'Speichern',
+ last_update:'Aktualisiert', refresh_btn:'Aktualisieren', confirm_btn:'Bestätigen', apikey_placeholder:'Dein SISTRIX API-Schlüssel', save:'Speichern',
  domains_title:'Adressen', domain:'Domain', country:'Land', mode:'Modus', type:'Typ', address:'Adresse',
  domain_placeholder:'beispiel.de', add:'+ Hinzufügen', active_domains:'aktive Adressen',
  loading_data:'Lade SISTRIX-Daten...', added:'Hinzugefügt',
@@ -1188,7 +1201,7 @@ const I18N = {
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
  },
  pt: { sim_title:'Panel',
- last_update:'Última verificação:', refresh_btn:'Atualizar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar',
+ last_update:'Atualizado', refresh_btn:'Atualizar', confirm_btn:'Confirmar', apikey_placeholder:'A tua API key SISTRIX', save:'Guardar',
  domains_title:'Endereços', domain:'Domínio', country:'País', mode:'Modo', type:'Tipo', address:'Endereço',
  domain_placeholder:'exemplo.com', add:'+ Adicionar', active_domains:'endereços ativos',
  loading_data:'A carregar dados SISTRIX...', added:'Adicionado',
@@ -1267,7 +1280,7 @@ offCanvas.height = canvas.height;
 // Cached DOM references (static elements only)
 const $ = id => document.getElementById(id);
 const DOM = {
- statusBar: $('statusBar'), domainList: $('domainList'),
+ domainStatus: $('domainStatus'), domainList: $('domainList'),
  previewStatus: $('previewStatus'), btnPlayPause: $('btnPlayPause'), domainCounter: $('domainCounter'), ledOuter: $('ledOuter'),
  apiKey: $('apiKey'), cycleBtns: $('cycleBtns'), langSelect: $('langSelect'),
  themeToggle: $('themeToggle'), toast: $('toast'),
@@ -1391,6 +1404,10 @@ const F3x5 = {
  '.':'000000000000010',',':'000000000010100','-':'000000111000000','+':'000010111010000',
  '%':'100001010100001','!':'010010010000010',' ':'000000000000000','/':'001001010100100',
  ':':'000010000010000',
+ '$':'010111110111010','&':'010101010101110',
+ '(':'010100100100010',')':'010001001001010',
+ '=':'000111000111000','#':'101111101111101',
+ '@':'010101111101011',
 };
 
 // FONT_4x6: intermediate font — 4px wide, 6px tall, hand-crafted for clean rendering at h=6
@@ -1418,6 +1435,10 @@ const F4x6 = {
  '%':'100100100010010001001001','!':'010001000100010000000100',
  ' ':'000000000000000000000000','/':'000100010010010010001000',
  ':':'000001000000000001000000',
+ '$':'010011111100011100110100','&':'011010010110100110010111',
+ '(':'001001000100010001000010',')':'010000100010001000100100',
+ '=':'000011110000111100000000','#':'010111110101111101010000',
+ '@':'011010011011101100010110',
 };
 
 // FONT_5x7: larger font for the main value — 5px wide, 7px tall + 1px spacing = 6px per char
@@ -1467,6 +1488,13 @@ const F5x7 = {
  ':':'00000001000000000000001000000000000',
  '%':'10001000100010001000100010000000000',
  ' ':'00000000000000000000000000000000000',
+ '$':'00100011111010001110001011111000100',
+ '&':'01100100100110010010101010111000000',
+ '(':'00010001000100001000010000010000010',
+ ')':'01000001000001000010000100010001000',
+ '=':'00000000001111100000111110000000000',
+ '#':'01010010101111101010111110101001010',
+ '@':'01110100010110110101011100000001110',
  // Accented vowels (acute)
  'Á':'00010011101000111111100011000100000',
  'É':'00010111111000011110100001111100000',
@@ -1600,8 +1628,20 @@ function rainbowColor(px) {
  return `rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;
 }
 
+function parseHexColor(hex) {
+ const n = parseInt(hex.slice(1), 16);
+ return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function gradientColor(px, c1, c2) {
+ const t = ((((px % 64) + 64) % 64) / 63);
+ return `rgb(${Math.round(c1[0]+(c2[0]-c1[0])*t)},${Math.round(c1[1]+(c2[1]-c1[1])*t)},${Math.round(c1[2]+(c2[2]-c1[2])*t)})`;
+}
+
 function drawText(text, x, y, color, size, h) {
  const isRainbow = color === 'rainbow';
+ const isGradient = typeof color === 'string' && color.startsWith('gradient:');
+ let gradC1, gradC2;
+ if (isGradient) { const p = color.split(':'); gradC1 = parseHexColor(p[1]); gradC2 = parseHexColor(p[2]); }
  const str = text.normalize('NFC').toUpperCase();
  let isLarge = size === 'large';
  // Use native 4x6 font when small font scaled to h=6
@@ -1613,7 +1653,7 @@ function drawText(text, x, y, color, size, h) {
  if (x + 4 >= 0) {
  for (let row = 0; row < 6; row++)
  for (let col = 0; col < 4; col++)
- if (bits[row * 4 + col]) drawPixel(x + col, y + row, isRainbow ? rainbowColor(x + col) : color);
+ if (bits[row * 4 + col]) drawPixel(x + col, y + row, isRainbow ? rainbowColor(x + col) : isGradient ? gradientColor(x + col, gradC1, gradC2) : color);
  }
  x += 5;
  }
@@ -1638,7 +1678,7 @@ function drawText(text, x, y, color, size, h) {
  if (x + cw >= 0) {
  for (let row = 0; row < srcH; row++)
  for (let col = off; col < off + cw; col++)
- if (bits[row * srcW + col]) drawPixel(x + col - off, y + row, isRainbow ? rainbowColor(x + col - off) : color);
+ if (bits[row * srcW + col]) drawPixel(x + col - off, y + row, isRainbow ? rainbowColor(x + col - off) : isGradient ? gradientColor(x + col - off, gradC1, gradC2) : color);
  }
  x += cw + 1;
  }
@@ -1656,7 +1696,7 @@ function drawText(text, x, y, color, size, h) {
  if (x + charPxW >= 0) {
  for (let oy = 0; oy < h; oy++) {
  for (let ox = 0; ox < charPxW; ox++) {
- if (bits[mapY[oy] * srcW + mapX[ox]]) drawPixel(x + ox, y + oy, isRainbow ? rainbowColor(x + ox) : color);
+ if (bits[mapY[oy] * srcW + mapX[ox]]) drawPixel(x + ox, y + oy, isRainbow ? rainbowColor(x + ox) : isGradient ? gradientColor(x + ox, gradC1, gradC2) : color);
  }
  }
  }
@@ -1817,10 +1857,11 @@ function clickRefresh() {
  if (!_refreshArmed) {
  _refreshArmed = true;
  const creditsInfo = sistrixCredits != null ? ` (${sistrixCredits.toLocaleString('de-DE')} ${t('credits_available')})` : '';
- btn.innerHTML = `${t('refresh_confirm_short')}${creditsInfo}`;
- btn.style.borderColor = 'var(--accent)';
- btn.style.color = 'var(--accent)';
- _refreshTimer = setTimeout(() => { _refreshArmed = false; btn.innerHTML = `${t('refresh_btn')}`; btn.style.borderColor = ''; btn.style.color = ''; }, 4000);
+ toast(`${t('refresh_confirm_short')}${creditsInfo}`);
+ btn.innerHTML = t('confirm_btn');
+ btn.classList.add('armed');
+ const resetBtn = () => { _refreshArmed = false; btn.innerHTML = t('refresh_btn'); btn.classList.remove('armed'); btn.blur(); btn.style.pointerEvents = 'none'; requestAnimationFrame(() => { btn.style.pointerEvents = ''; }); };
+ _refreshTimer = setTimeout(resetBtn, 3500);
  return;
  }
  clearTimeout(_refreshTimer);
@@ -1829,7 +1870,7 @@ function clickRefresh() {
 }
 async function doRefresh() {
  const btn = document.querySelector('.btn-refresh');
- if (btn) { btn.disabled = true; btn.textContent = t('loading_dots'); btn.style.borderColor = ''; btn.style.color = ''; }
+ if (btn) { btn.disabled = true; btn.textContent = t('loading_dots'); btn.classList.remove('armed'); }
  toast(t('fetching'), true);
  try {
  await updatePreviewData(false, true);
@@ -1893,20 +1934,16 @@ function updateStatusBar() {
  const active = currentConfig.domains.filter(d => d.active).length;
  const total = currentConfig.domains.length;
  const hasKey = currentConfig.sistrix_api_key && currentConfig.sistrix_api_key !== 'TU_API_KEY_AQUI';
- const statusBar = DOM.statusBar;
+ const ds = DOM.domainStatus;
 
  let updatedPart = '';
  if (lastCacheData.length) {
  const newest = lastCacheData.reduce((a, b) => (a.cached_at > b.cached_at ? a : b), lastCacheData[0]);
  const lastTime = newest.cached_at ? formatTime(newest.cached_at) : '';
- if (lastTime) updatedPart = `<span class="status-item"><span class="status-dot dot-green" aria-hidden="true"></span>${t('last_update')} ${lastTime}</span>`;
+ if (lastTime) updatedPart = ` · ${t('last_update')} ${lastTime}`;
  }
 
- statusBar.innerHTML = `
- <span class="status-item"><span class="status-dot dot-green" aria-hidden="true"></span>${active}/${total} ${t('active_domains')}</span>
- ${updatedPart}
- <button class="btn-refresh" onclick="clickRefresh()">${t('refresh_btn')}</button>
- `;
+ ds.innerHTML = `${updatedPart ? updatedPart.replace(/^ · /, '') + ' ' : ''}<button class="btn-refresh" onclick="clickRefresh()">${t('refresh_btn')}</button>`;
 }
 
 let _toastTimer = null;
@@ -1914,7 +1951,7 @@ function toast(msg, persist) {
  clearTimeout(_toastTimer);
  DOM.toast.textContent = msg;
  DOM.toast.classList.add('show');
- if (!persist) _toastTimer = setTimeout(() => DOM.toast.classList.remove('show'), 2000);
+ if (!persist) _toastTimer = setTimeout(() => DOM.toast.classList.remove('show'), 3500);
 }
 
 function applyConfig(config) {
@@ -2759,56 +2796,100 @@ function showEditPopup(screenX, screenY, currentVal, onConfirm, opts) {
  colorInp.style.display = 'none';
  popup.appendChild(colorInp);
 
+ // Helper to clear all active states
+ const clearActive = () => {
+  popup.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  if (gradExpand) gradExpand.style.display = 'none';
+ };
+
  // Color grid
  const grid = document.createElement('div');
  grid.className = 'color-grid';
+
+ // Palette swatches
+ const customDot = document.createElement('div'); // forward ref for palette clicks
  COLOR_PALETTE.forEach(c => {
- const sw = document.createElement('div');
- sw.className = 'color-swatch' + (c.toLowerCase() === currentColor.toLowerCase() ? ' active' : '');
- sw.style.background = c;
- sw.addEventListener('click', e => {
- e.stopPropagation();
- currentColor = c;
- grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
- sw.classList.add('active');
- customDot.style.background = c;
- if (opts.onColor) opts.onColor(c);
- });
- grid.appendChild(sw);
+  const sw = document.createElement('div');
+  sw.className = 'color-swatch' + (c.toLowerCase() === currentColor.toLowerCase() ? ' active' : '');
+  sw.style.background = c;
+  sw.addEventListener('click', e => {
+   e.stopPropagation();
+   currentColor = c;
+   clearActive();
+   sw.classList.add('active');
+   customDot.style.background = c;
+   if (opts.onColor) opts.onColor(c);
+  });
+  grid.appendChild(sw);
  });
 
- // Rainbow swatch
+ // Rainbow swatch (in the grid, like before)
  const rainbowSw = document.createElement('div');
- rainbowSw.className = 'color-swatch rainbow';
+ rainbowSw.className = 'color-swatch rainbow' + (currentColor === 'rainbow' ? ' active' : '');
  rainbowSw.title = 'Rainbow';
  rainbowSw.addEventListener('click', e => {
- e.stopPropagation();
- if (opts.onColor) opts.onColor('rainbow');
- grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
- rainbowSw.classList.add('active');
+  e.stopPropagation();
+  clearActive();
+  rainbowSw.classList.add('active');
+  if (opts.onColor) opts.onColor('rainbow');
  });
  grid.appendChild(rainbowSw);
 
- // Custom color picker
- const customWrap = document.createElement('div');
- customWrap.className = 'color-custom';
- const customDot = document.createElement('div');
- customDot.className = 'color-custom-dot';
- customDot.style.background = currentColor;
- customDot.addEventListener('click', e => { e.stopPropagation(); colorInp.click(); });
- customWrap.appendChild(customDot);
- const customLabel = document.createElement('span');
- customLabel.textContent = 'Custom';
- customWrap.appendChild(customLabel);
- customWrap.addEventListener('click', e => { e.stopPropagation(); colorInp.click(); });
- colorInp.addEventListener('input', () => {
- currentColor = colorInp.value;
- customDot.style.background = currentColor;
- grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
- if (opts.onColor) opts.onColor(currentColor);
- });
+ // Gradient swatch (in the grid, expands color inputs on click)
+ let gradColor1 = '#ff0000', gradColor2 = '#0088ff';
+ if (typeof currentColor === 'string' && currentColor.startsWith('gradient:')) {
+  const pp = currentColor.split(':'); gradColor1 = pp[1]; gradColor2 = pp[2];
+ }
+ const gradSw = document.createElement('div');
+ gradSw.className = 'color-swatch' + (typeof currentColor === 'string' && currentColor.startsWith('gradient:') ? ' active' : '');
+ gradSw.title = 'Gradient';
+ const updateGradSw = () => { gradSw.style.background = `linear-gradient(90deg, ${gradColor1}, ${gradColor2})`; };
+ updateGradSw();
+ grid.appendChild(gradSw);
 
- grid.appendChild(customWrap);
+ // Gradient expand row (hidden until gradient swatch clicked)
+ const gradExpand = document.createElement('div');
+ gradExpand.className = 'gradient-expand';
+ gradExpand.style.display = (typeof currentColor === 'string' && currentColor.startsWith('gradient:')) ? 'flex' : 'none';
+ const gradInp1 = document.createElement('input');
+ gradInp1.type = 'color'; gradInp1.value = gradColor1; gradInp1.className = 'gradient-color-input'; gradInp1.title = 'Color 1';
+ const gradArrow = document.createElement('span');
+ gradArrow.className = 'gradient-arrow'; gradArrow.textContent = '\u2192';
+ const gradInp2 = document.createElement('input');
+ gradInp2.type = 'color'; gradInp2.value = gradColor2; gradInp2.className = 'gradient-color-input'; gradInp2.title = 'Color 2';
+ const applyGrad = () => {
+  const val = 'gradient:' + gradColor1 + ':' + gradColor2;
+  popup.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  gradSw.classList.add('active');
+  updateGradSw();
+  if (opts.onColor) opts.onColor(val);
+ };
+ gradSw.addEventListener('click', e => {
+  e.stopPropagation();
+  applyGrad();
+  gradExpand.style.display = 'flex';
+ });
+ gradInp1.addEventListener('input', e => { e.stopPropagation(); gradColor1 = gradInp1.value; applyGrad(); });
+ gradInp2.addEventListener('input', e => { e.stopPropagation(); gradColor2 = gradInp2.value; applyGrad(); });
+ gradExpand.appendChild(gradInp1);
+ gradExpand.appendChild(gradArrow);
+ gradExpand.appendChild(gradInp2);
+
+ // Custom color dot (last in grid)
+ customDot.className = 'color-custom-dot';
+ const isSolid = !currentColor.startsWith || (!currentColor.startsWith('gradient:') && currentColor !== 'rainbow');
+ customDot.style.background = isSolid ? currentColor : '#ffffff';
+ customDot.title = 'Custom color';
+ customDot.addEventListener('click', e => { e.stopPropagation(); colorInp.click(); });
+ colorInp.addEventListener('input', () => {
+  currentColor = colorInp.value;
+  customDot.style.background = currentColor;
+  clearActive();
+  if (opts.onColor) opts.onColor(currentColor);
+ });
+ grid.appendChild(customDot);
+
+ grid.appendChild(gradExpand);
  popup.appendChild(grid);
  }
 
@@ -2994,7 +3075,6 @@ function onDataDblClick(e) {
  const hit = dataEditor.hitTest(lx, ly, data);
  if (!hit) return;
  if (hit.id === 'label') {
- const pair = getColorKeyForElement('label', data);
  showEditPopup(e.clientX, e.clientY, data.label || '', val => {
  if (val.trim()) {
  const newLabel = val.trim().substring(0, 8).toUpperCase();
@@ -3002,19 +3082,7 @@ function onDataDblClick(e) {
  fetch('/api/domains/' + data.configIndex, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:'label',value:newLabel})});
  drawLED(data);
  }
- }, {
- color: dataLayout[pair[0]] || pair[1],
- onColor: c => { dataLayout[pair[0]] = c; saveDataLayout(); drawLED(previewData[currentIndex]); }
  });
- } else {
- const pair = getColorKeyForElement(hit.id, data);
- if (pair) {
-  showEditPopup(e.clientX, e.clientY, '', null, {
-   colorOnly: true,
-   color: dataLayout[pair[0]] || pair[1],
-   onColor: c => { dataLayout[pair[0]] = c; saveDataLayout(); drawLED(previewData[currentIndex]); }
-  });
- }
  }
 }
 
