@@ -737,7 +737,7 @@ def _build_index_html():
  --border: #1e1e2e;
  --hover: #1a1a2e;
  --text: #e0e0e0;
- --dim: #888;
+ --dim: #9a9a9f;
  --text-disabled: #555;
  --accent: #00c853;
  --accent-hover: #00b848;
@@ -752,7 +752,7 @@ def _build_index_html():
  --input-bg: #0a0a0f;
  --focus-ring: rgba(0,200,83,0.4);
  --mode-weekly-bg: #1a2a1a;
- --mode-daily-bg: #2a2a1a;
+ --mode-daily-bg: #252515;
  }
  [data-theme="light"] {
  --bg: #f5f5f7;
@@ -842,14 +842,18 @@ def _build_index_html():
  border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-4); transition:all 0.2s;
  min-width:0;
  }
- .domain-card.inactive { opacity:0.55; }
- .domain-card.inactive:has(.armed) { opacity:1; }
- .domain-card.inactive:has(.armed) > :not(.armed) { opacity:0.55; }
+ .domain-card.inactive .domain-label,
+ .domain-card.inactive .domain-info,
+ .domain-card.inactive .domain-type-tag,
+ .domain-card.inactive .domain-country-tag,
+ .domain-card.inactive .domain-mode,
+ .domain-card.inactive .drag-handle,
+ .domain-card.inactive .btn-icon { color:var(--dim); }
  .domain-card:hover { border-color:var(--hover); }
  .domain-label { font-size:var(--text-base); font-weight:bold; min-width:70px; }
  .domain-info { flex:1; font-size:var(--text-sm); color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
- .domain-type-tag { font-size:var(--text-xs); color:var(--blue); opacity:0.8; text-transform:uppercase; flex-shrink:0; }
- .domain-country-tag { font-size:var(--text-xs); color:#ffb340; text-transform:uppercase; flex-shrink:0; }
+ .domain-type-tag { font-size:var(--text-xs); color:var(--blue); text-transform:uppercase; flex-shrink:0; }
+ .domain-country-tag { font-size:var(--text-xs); color:#ffcc66; text-transform:uppercase; flex-shrink:0; }
  .drag-handle { cursor:grab; color:var(--dim); font-size:var(--text-base); user-select:none; padding:0 var(--space-1); flex-shrink:0; opacity:0.4; transition:opacity 0.2s; line-height:1; }
  .drag-handle:hover { opacity:1; }
  .drag-handle:active { cursor:grabbing; }
@@ -971,7 +975,7 @@ def _build_index_html():
  .section .btn { width:100%; text-align:center; }
  .edit-row .btn, .edit-row .btn-icon { width:auto; flex:0 0 auto; }
  .edit-row .btn-icon { width:34px; height:34px; min-width:34px; min-height:34px; }
- .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom, 0px)); right:var(--space-5); left:auto; }
+ .toast { bottom:calc(var(--space-7) + env(safe-area-inset-bottom)); right:var(--space-5); left:auto; }
  }
  /* Custom dropdown (countries) */
  .custom-select { position:relative; width:100%; min-height:34px; }
@@ -1128,11 +1132,11 @@ def _build_index_html():
  <h2 class="section-title"><span data-i18n="domains_title">Domains</span><span id="domainStatus" class="domain-status-inline"></span></h2>
  <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
  <form class="add-form" onsubmit="event.preventDefault();addDomain()">
- <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8" required aria-required="true"></div>
- <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder" required aria-required="true"></div>
- <div><label for="newType" data-i18n="type">Type</label><div id="newType" class="custom-select"></div></div>
- <div><label for="newCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select"></div></div>
- <div><label for="newMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select"></div></div>
+ <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8" required></div>
+ <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder" required></div>
+ <div><label id="lblType" data-i18n="type">Type</label><div id="newType" class="custom-select" aria-labelledby="lblType"></div></div>
+ <div><label id="lblCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select" aria-labelledby="lblCountry"></div></div>
+ <div><label id="lblMode" data-i18n="mode">Mode</label><div id="newMode" class="custom-select" aria-labelledby="lblMode"></div></div>
  <div><label aria-hidden="true">&nbsp;</label><button type="submit" class="btn" data-i18n="add">+ Add</button></div>
  </form>
  </div>
@@ -3243,6 +3247,9 @@ function initCustomSelect(container, options, defaultVal) {
  trigger.setAttribute('aria-haspopup', 'listbox');
  trigger.setAttribute('aria-expanded', 'false');
  trigger.setAttribute('tabindex', '0');
+ const alabel = container.getAttribute('aria-label') || container.getAttribute('aria-labelledby');
+ if (container.getAttribute('aria-label')) trigger.setAttribute('aria-label', container.getAttribute('aria-label'));
+ else if (container.getAttribute('aria-labelledby')) trigger.setAttribute('aria-labelledby', container.getAttribute('aria-labelledby'));
  const dropdown = document.createElement('div');
  dropdown.className = 'custom-select-dropdown';
  dropdown.setAttribute('role', 'listbox');
