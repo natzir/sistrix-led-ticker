@@ -987,6 +987,8 @@ def _build_index_html():
  .btn:hover { background:var(--accent-hover); }
  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
+ .btn-danger { background:var(--red); border-color:var(--red); color:white; }
+ .btn-danger:hover { opacity:0.85; }
 
  .domain-status-inline { font-size:var(--text-xs); color:var(--dim); font-weight:normal; text-transform:none; letter-spacing:0; display:inline-flex; align-items:center; gap:var(--space-3); white-space:nowrap; }
  .domain-status-inline .btn-refresh { font-size:var(--text-xs); padding:0 var(--space-4); height:34px; border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; text-transform:uppercase; letter-spacing:1px; font-weight:bold; white-space:nowrap; position:relative; display:inline-flex; align-items:center; box-sizing:border-box; }
@@ -1112,7 +1114,8 @@ def _build_index_html():
  .apikey-popup { position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); display:flex; gap:var(--space-3); align-items:center; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,.3); white-space:nowrap; }
  .apikey-popup input { background:var(--surface-sunken); border:1px solid var(--border); color:var(--text); padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm); font-family:inherit; font-size:var(--text-sm); min-width:0; flex:1; }
  .apikey-popup .btn { flex-shrink:0; }
- @media (max-width:500px) { .apikey-popup { position:fixed; top:auto; bottom:var(--space-6); left:var(--space-4); right:var(--space-4); } }
+ @media (max-width:500px) { .apikey-popup { position:fixed; top:50px; bottom:auto; left:var(--space-4); right:var(--space-4); }
+ .apikey-popup input { width:auto !important; } }
 </style>
 </head>
 <body>
@@ -1128,8 +1131,9 @@ def _build_index_html():
  <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">API</span>
  </button>
  <div id="apiKeyPopup" class="apikey-popup" style="display:none;">
- <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;max-width:60vw;">
- <button class="btn btn-small" onclick="saveApiKey()" data-i18n="save">Save</button>
+ <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;">
+ <button id="btnApiSave" class="btn btn-small" onclick="saveApiKey()" data-i18n="save">Save</button>
+ <button id="btnApiDelete" class="btn-icon btn-icon-danger" onclick="deleteApiKey()" style="display:none;">✕</button>
  </div>
  </div>
  <button id="themeToggle" onclick="toggleTheme()" class="header-btn" aria-label="Toggle theme">&#9790;</button>
@@ -2464,7 +2468,7 @@ function toggleApiKeyPopup() {
  const popup = $('apiKeyPopup');
  const opening = popup.style.display === 'none';
  popup.style.display = opening ? 'flex' : 'none';
- if (opening) { popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'true'); if (!currentConfig.has_api_key) setTimeout(() => DOM.apiKey.focus(), 10); }
+ if (opening) { popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'true'); updateApiButtons(); }
  else { $('btnApiKey').focus(); }
 }
 document.addEventListener('click', e => {
@@ -2475,12 +2479,24 @@ document.addEventListener('click', e => {
  }
 });
 
+function updateApiButtons() {
+ const masked = DOM.apiKey.dataset.masked === '1';
+ $('btnApiSave').style.display = masked ? 'none' : '';
+ $('btnApiDelete').style.display = (currentConfig.has_api_key && masked) ? '' : 'none';
+}
 DOM.apiKey.addEventListener('focus', () => {
- if (DOM.apiKey.dataset.masked === '1') { DOM.apiKey.value = ''; DOM.apiKey.dataset.masked = ''; }
+ if (DOM.apiKey.dataset.masked === '1') { DOM.apiKey.value = ''; DOM.apiKey.dataset.masked = ''; updateApiButtons(); }
 });
 DOM.apiKey.addEventListener('blur', () => {
- if (!DOM.apiKey.value.trim() && currentConfig.has_api_key) { DOM.apiKey.value = '••••••••••••••••'; DOM.apiKey.dataset.masked = '1'; }
+ if (!DOM.apiKey.value.trim() && currentConfig.has_api_key) { DOM.apiKey.value = '••••••••••••••••'; DOM.apiKey.dataset.masked = '1'; updateApiButtons(); }
 });
+
+async function deleteApiKey() {
+ await postJSON('/api/apikey', {api_key: ''});
+ toast(t('apikey_removed'));
+ $('apiKeyPopup').style.display = 'none';
+ await loadConfig();
+}
 
 async function saveApiKey() {
  const key = DOM.apiKey.dataset.masked === '1' ? '' : DOM.apiKey.value.trim();
