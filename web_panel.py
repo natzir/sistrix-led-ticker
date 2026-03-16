@@ -1381,7 +1381,7 @@ let rotateInterval = null;
 let cycleTime = 10000;
 
 // Data card layout (positions of each element on LED)
-const DEFAULT_DATA_LAYOUT = { labelX:2, labelY:1, labelFont:'small', labelH:null, labelScale:1, modeX:59, modeY:8, modeFont:'small', modeH:null, modeColor:'#999999', changeY:1, changeFont:'small', changeH:null, changeX:null, changeScale:1, valueX:2, valueY:10, valueFont:'large', valueH:null, valueScale:1, countryX:49, countryY:8, countryFont:'small', countryH:null, countryScale:1, sparkY:21, sparkH:10, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#444444', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
+const DEFAULT_DATA_LAYOUT = { labelX:2, labelY:1, labelFont:'small', labelH:null, labelScale:1, modeX:59, modeY:8, modeFont:'small', modeH:null, modeColor:'#999999', changeY:1, changeFont:'small', changeH:null, changeX:null, changeScale:1, valueX:2, valueY:10, valueFont:'large', valueH:null, valueScale:1, countryX:49, countryY:8, countryFont:'small', countryH:null, countryScale:1, sparkY:21, sparkH:10, sparkFill:true, labelColor:'#ffffff', valueColor:'#ffffff', changeUpColor:'#00dc00', changeDownColor:'#ff2828', countryColor:'#444444', sparkUpColor:'#00c853', sparkDownColor:'#ff2d55' };
 let dataLayout = { ...DEFAULT_DATA_LAYOUT };
 let dataLayoutEditMode = false;
 
@@ -1463,6 +1463,23 @@ function drawLED(data) {
  }
 
  const sparkColor = isUp ? ((DL.sparkUpColor||'#00c853')) : ((DL.sparkDownColor||'#ff2d55'));
+ // Fill area under sparkline if enabled
+ if (DL.sparkFill) {
+ // Parse color and apply ~30% opacity by drawing dimmer pixels
+ const fc = parseHexColor(sparkColor);
+ const fillColor = 'rgb(' + Math.round(fc[0]*0.3) + ',' + Math.round(fc[1]*0.3) + ',' + Math.round(fc[2]*0.3) + ')';
+ for (let i = 0; i < points.length - 1; i++) {
+  const x0 = points[i][0], x1 = points[i+1][0];
+  const y0 = points[i][1], y1 = points[i+1][1];
+  for (let x = x0; x <= x1; x++) {
+  const t = x1 === x0 ? 0 : (x - x0) / (x1 - x0);
+  const lineY = Math.round(y0 + t * (y1 - y0));
+  for (let y = lineY + 1; y <= chartBottom; y++) {
+   drawPixel(x, y, fillColor);
+  }
+  }
+ }
+ }
  for (let i = 0; i < points.length - 1; i++) {
  drawLine(points[i][0], points[i][1], points[i+1][0], points[i+1][1], sparkColor);
  }
@@ -3247,6 +3264,10 @@ function onDataDblClick(e) {
  drawLED(data);
  }
  });
+ } else if (hit.id === 'spark') {
+ dataLayout.sparkFill = !dataLayout.sparkFill;
+ saveDataLayout();
+ drawLED(data);
  }
 }
 
@@ -3515,7 +3536,6 @@ function syncArrowHeight() {
 }
 let _resizeTimer;
 window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(syncArrowHeight, 100); });
-
 
 // Unified init — single request replaces 5 separate ones
 (async () => {
