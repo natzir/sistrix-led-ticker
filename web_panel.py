@@ -837,7 +837,7 @@ def _build_index_html():
  }
  h1 { font-size:var(--text-base); text-transform:uppercase; letter-spacing:3px; color:var(--accent); margin-bottom:0; }
  header { margin-bottom:var(--space-7); }
- .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); overflow:hidden; }
+ .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-7); margin-bottom:var(--space-7); }
  .section-title, h2.section-title { font-size:var(--text-sm); text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:var(--space-6); display:flex; justify-content:space-between; align-items:center; font-weight:normal; }
 
  /* ===== LED SIMULATOR ===== */
