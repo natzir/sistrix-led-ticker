@@ -987,8 +987,6 @@ def _build_index_html():
  .btn:hover { background:var(--accent-hover); }
  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
  .btn-small { height:34px; min-width:50px; padding:0 var(--space-4); }
- .btn-danger { background:var(--red); border-color:var(--red); color:white; }
- .btn-danger:hover { opacity:0.85; }
 
  .domain-status-inline { font-size:var(--text-xs); color:var(--dim); font-weight:normal; text-transform:none; letter-spacing:0; display:inline-flex; align-items:center; gap:var(--space-3); white-space:nowrap; }
  .domain-status-inline .btn-refresh { font-size:var(--text-xs); padding:0 var(--space-4); height:34px; border-radius:var(--radius-sm); background:none; border:1px solid var(--border); color:var(--dim); cursor:pointer; font-family:inherit; transition:all 0.2s; text-transform:uppercase; letter-spacing:1px; font-weight:bold; white-space:nowrap; position:relative; display:inline-flex; align-items:center; box-sizing:border-box; }
@@ -1445,8 +1443,6 @@ function fmtChange(pct) { return (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%'; }
 function fmtValue(v) { return v >= 100 ? v.toFixed(1) : v.toFixed(2); }
 
 function drawLED(data) {
- // Clear any leftover pixels from a previous interrupted draw
- for (const k in _pixelBatch) delete _pixelBatch[k];
  const bg = '#000';
  ctx.fillStyle = bg;
  ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2385,22 +2381,22 @@ async function saveDomainEdit(i) {
  toast(t('updated'));
 }
 
-async function toggleDomain(i) {
- await postJSON(`/api/domains/${i}/toggle`, {});
+async function reloadAfterDomainChange(msg) {
  await loadConfig();
  toast(t('loading_data_short'), true);
  await loadPreview();
  await loadCacheStatus();
- toast(t('updated'));
+ toast(t(msg));
+}
+
+async function toggleDomain(i) {
+ await postJSON(`/api/domains/${i}/toggle`, {});
+ await reloadAfterDomainChange('updated');
 }
 
 async function toggleMode(i, current) {
  await putJSON(`/api/domains/${i}`, {mode: current === 'weekly' ? 'daily' : 'weekly'});
- await loadConfig();
- toast(t('loading_data_short'), true);
- await loadPreview();
- await loadCacheStatus();
- toast(t('mode_changed'));
+ await reloadAfterDomainChange('mode_changed');
 }
 
 let _deleteArmed = null;
@@ -2500,13 +2496,7 @@ async function deleteApiKey() {
 
 async function saveApiKey() {
  const key = DOM.apiKey.dataset.masked === '1' ? '' : DOM.apiKey.value.trim();
- if (!key) {
- await postJSON('/api/apikey', {api_key: ''});
- toast(t('apikey_removed'));
- $('apiKeyPopup').style.display = 'none';
- await loadConfig();
- return;
- }
+ if (!key) { await deleteApiKey(); return; }
  toast(t('apikey_checking'), true);
  const res = await fetch('/api/apikey', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({api_key: key})});
  const data = await res.json();
@@ -2688,8 +2678,6 @@ function drawBrandDisabled() {
 }
 
 function drawBrandCard() {
- // Clear any leftover pixels from a previous interrupted draw
- for (const k in _pixelBatch) delete _pixelBatch[k];
  const bg = '#000';
  ctx.fillStyle = bg;
  ctx.fillRect(0, 0, canvas.width, canvas.height);
