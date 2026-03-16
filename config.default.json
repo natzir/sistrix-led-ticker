@@ -1375,6 +1375,7 @@
     "countryScale": 1,
     "sparkY": 21,
     "sparkH": 10,
+    "sparkFill": true,
     "labelColor": "#ffffff",
     "valueColor": "#ffffff",
     "changeUpColor": "#00dc00",

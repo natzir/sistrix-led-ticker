@@ -351,12 +351,12 @@ def render_frame(vd: VisibilityData) -> Image.Image:
         max_val = max(history)
         val_range = max_val - min_val if max_val != min_val else 1
 
-        num_points = min(len(history), PANEL_COLS - 2)
-        step = (PANEL_COLS - 2) / max(num_points - 1, 1)
+        num_points = min(len(history), PANEL_COLS)
+        step = (PANEL_COLS - 1) / max(num_points - 1, 1)
 
         points = []
         for i in range(num_points):
-            x = int(1 + i * step)
+            x = int(i * step)
             idx = len(history) - num_points + i
             normalized = (history[idx] - min_val) / val_range
             y = chart_y_end - int(normalized * chart_height)

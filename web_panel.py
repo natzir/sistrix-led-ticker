@@ -1450,12 +1450,12 @@ function drawLED(data) {
  const minV = Math.min(...history);
  const maxV = Math.max(...history);
  const range = maxV - minV || 1;
- const numPts = Math.min(history.length, LED_W - 2);
- const step = (LED_W - 2) / Math.max(numPts - 1, 1);
+ const numPts = Math.min(history.length, LED_W);
+ const step = (LED_W - 1) / Math.max(numPts - 1, 1);
 
  const points = [];
  for (let i = 0; i < numPts; i++) {
- const x = Math.round(1 + i * step);
+ const x = Math.round(i * step);
  const idx = history.length - numPts + i;
  const norm = (history[idx] - minV) / range;
  const y = chartBottom - Math.round(norm * chartH);
@@ -1474,7 +1474,7 @@ function drawLED(data) {
   for (let x = x0; x <= x1; x++) {
   const t = x1 === x0 ? 0 : (x - x0) / (x1 - x0);
   const lineY = Math.round(y0 + t * (y1 - y0));
-  for (let y = lineY + 1; y <= chartBottom; y++) {
+  for (let y = lineY; y <= chartBottom; y++) {
    drawPixel(x, y, fillColor);
   }
   }
@@ -3231,7 +3231,7 @@ function getDataElementBounds(data) {
  const ctf = DL.countryFont || 'small', ctH = DL.countryH;
  const countryX = (DL.countryX != null) ? DL.countryX : (DL.valueX + valW + 2);
  bounds.push({ id:'country', x:countryX, y:DL.countryY, w:measureText(data.country.toUpperCase(), ctf, ctH), h:textHeight(ctf, ctH), fx:'countryX', fy:'countryY', resizable:true, hKey:'countryH', font:ctf, color:'#888888', overlayLabel:t('country').toUpperCase() });
- bounds.push({ id:'spark', x:1, y:DL.sparkY, w:LED_W-2, h:DL.sparkH, fx:null, fy:'sparkY', resizable:true, hKey:'sparkH', resizeMin:4, color:'#00c853', overlayLabel:t('ed_chart') });
+ bounds.push({ id:'spark', x:0, y:DL.sparkY, w:LED_W, h:DL.sparkH+1, fx:null, fy:'sparkY', resizable:true, hKey:'sparkH', resizeMin:4, color:'#00c853', overlayLabel:t('ed_chart') });
  return bounds;
 }
 
