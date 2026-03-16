@@ -384,7 +384,6 @@ DEMO_PREVIEW = [{
     "history": [12.45, 12.10, 11.82, 12.01, 11.45, 11.60, 10.95, 10.42, 10.78, 10.15, 9.87, 9.35, 9.62, 8.90, 8.55, 8.20],
     "from_cache": False,
     "last_date": "",
-    "_demo": True,
 }]
 
 
@@ -1101,7 +1100,7 @@ def _build_index_html():
  <div style="display:flex;gap:8px;align-items:center;" role="toolbar" aria-label="Settings">
  <div style="position:relative;">
  <button id="btnApiKey" onclick="toggleApiKeyPopup()" class="header-btn" style="gap:6px;">
- <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">Add API</span>
+ <span id="apiDot" class="status-dot dot-red" style="margin:0;" aria-hidden="true"></span><span class="api-label">API</span>
  </button>
  <div id="apiKeyPopup" class="apikey-popup" style="display:none;">
  <input type="password" id="apiKey" data-i18n-placeholder="apikey_placeholder" placeholder="Your SISTRIX API key" aria-label="SISTRIX API Key" style="width:260px;max-width:60vw;">
@@ -1195,6 +1194,7 @@ const I18N = {
  edit:'Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', label_ph:'EJMP', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
+ api_hint:'Añade tu API key de SISTRIX para empezar',
  screen_off:'Apagar pantalla', screen_on:'Encender pantalla',
  prev_slide:'Anterior', next_slide:'Siguiente',
  toggle_theme:'Cambiar tema', play_pause:'Reproducir / Pausar', move_up:'Subir', move_down:'Bajar', cancel:'Cancelar', cycle_time:'Rotar cada {s}s', drag_reorder:'Arrastrar para reordenar', click_edit:'Clic para editar', click_again_confirm:'Clica de nuevo para confirmar',
@@ -1213,6 +1213,7 @@ const I18N = {
  edit:'Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', label_ph:'EXMP', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
+ api_hint:'Add your SISTRIX API key to get started',
  screen_off:'Turn off screen', screen_on:'Turn on screen',
  prev_slide:'Previous', next_slide:'Next',
  toggle_theme:'Toggle theme', play_pause:'Play / Pause', move_up:'Move up', move_down:'Move down', cancel:'Cancel', cycle_time:'Rotate every {s}s', drag_reorder:'Drag to reorder', click_edit:'Click to edit', click_again_confirm:'Click again to confirm',
@@ -1231,6 +1232,7 @@ const I18N = {
  edit:'Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', label_ph:'EXPL', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
+ api_hint:'Ajoutez votre clé API SISTRIX pour commencer',
  screen_off:'Éteindre l\u2019écran', screen_on:'Allumer l\u2019écran',
  prev_slide:'Précédent', next_slide:'Suivant',
  toggle_theme:'Changer le thème', play_pause:'Lecture / Pause', move_up:'Monter', move_down:'Descendre', cancel:'Annuler', cycle_time:'Rotation toutes les {s}s', drag_reorder:'Glisser pour réorganiser', click_edit:'Cliquer pour éditer', click_again_confirm:'Cliquez à nouveau pour confirmer',
@@ -1249,6 +1251,7 @@ const I18N = {
  edit:'Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', label_ph:'ESMP', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
+ api_hint:'Aggiungi la tua API key SISTRIX per iniziare',
  screen_off:'Spegni schermo', screen_on:'Accendi schermo',
  prev_slide:'Precedente', next_slide:'Successivo',
  toggle_theme:'Cambia tema', play_pause:'Play / Pausa', move_up:'Sposta su', move_down:'Sposta giù', cancel:'Annulla', cycle_time:'Ruota ogni {s}s', drag_reorder:'Trascina per riordinare', click_edit:'Clicca per modificare', click_again_confirm:'Clicca di nuovo per confermare',
@@ -1267,6 +1270,7 @@ const I18N = {
  edit:'Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', label_ph:'BSPL', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
+ api_hint:'Füge deinen SISTRIX API-Schlüssel hinzu',
  screen_off:'Bildschirm ausschalten', screen_on:'Bildschirm einschalten',
  prev_slide:'Zurück', next_slide:'Weiter',
  toggle_theme:'Thema wechseln', play_pause:'Abspielen / Pause', move_up:'Nach oben', move_down:'Nach unten', cancel:'Abbrechen', cycle_time:'Alle {s}s wechseln', drag_reorder:'Ziehen zum Umsortieren', click_edit:'Klicken zum Bearbeiten', click_again_confirm:'Erneut klicken zum Bestätigen',
@@ -1285,6 +1289,7 @@ const I18N = {
  edit:'Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', label_ph:'EXMP', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
+ api_hint:'Adiciona a tua API key SISTRIX para começar',
  screen_off:'Desligar ecrã', screen_on:'Ligar ecrã',
  prev_slide:'Anterior', next_slide:'Seguinte',
  toggle_theme:'Mudar tema', play_pause:'Reproduzir / Pausar', move_up:'Subir', move_down:'Descer', cancel:'Cancelar', cycle_time:'Rodar a cada {s}s', drag_reorder:'Arrastar para reordenar', click_edit:'Clicar para editar', click_again_confirm:'Clique novamente para confirmar',
@@ -2122,7 +2127,7 @@ function applyConfig(config) {
  keyInput.dataset.masked = hasKey ? '1' : '';
  const dot = $('apiDot');
  dot.className = 'status-dot ' + (hasKey ? 'dot-green' : 'dot-red');
- $('btnApiKey').querySelector('.api-label').textContent = hasKey ? 'API' : 'Add API';
+ $('btnApiKey').querySelector('.api-label').textContent = 'API';
  if (!hasKey) sistrixCredits = null;
  // Set language/theme BEFORE rendering dynamic content
  if (config.language && config.language !== currentLang) {
@@ -2431,7 +2436,7 @@ function toggleApiKeyPopup() {
  const popup = $('apiKeyPopup');
  const opening = popup.style.display === 'none';
  popup.style.display = opening ? 'flex' : 'none';
- if (opening) { popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'true'); setTimeout(() => DOM.apiKey.focus(), 10); }
+ if (opening) { popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'true'); if (!currentConfig.has_api_key) setTimeout(() => DOM.apiKey.focus(), 10); }
  else { $('btnApiKey').focus(); }
 }
 document.addEventListener('click', e => {
@@ -2463,7 +2468,7 @@ async function saveApiKey() {
  const data = await res.json();
  if (data.ok) {
  sistrixCredits = data.credits;
- toast(t('apikey_valid') + (data.credits != null ? ` (${data.credits} ${t('credits')})` : ''));
+ toast(t('apikey_valid') + (data.credits != null ? ` (${data.credits.toLocaleString('de-DE')} ${t('credits')})` : ''));
  $('apiKeyPopup').style.display = 'none';
  await loadConfig();
  loadPreview();
@@ -3575,6 +3580,7 @@ window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTim
   if (data.brand_layout) { Object.assign(brandLayout, data.brand_layout); }
   renderSlide();
   syncArrowHeight();
+  if (!data.config.has_api_key) setTimeout(() => toast(t('api_hint')), 500);
  } catch(e) {
   // Fallback to individual requests
   loadCountries();
