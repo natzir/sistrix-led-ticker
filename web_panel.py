@@ -371,8 +371,27 @@ def get_preview_data():
     return jsonify(get_preview_data_internal(load_config(), force=force, refresh=refresh))
 
 
+DEMO_PREVIEW = [{
+    "configIndex": -1,
+    "label": "DEMO",
+    "domain": "example.com",
+    "country": "es",
+    "mode": "weekly",
+    "type": "domain",
+    "current_value": 12.45,
+    "change_pct": 2.9,
+    "is_up": True,
+    "history": [12.45, 12.10, 11.82, 12.01, 11.45, 11.60, 10.95, 10.42, 10.78, 10.15, 9.87, 9.35, 9.62, 8.90, 8.55, 8.20],
+    "from_cache": False,
+    "last_date": "",
+    "_demo": True,
+}]
+
+
 def get_preview_data_internal(config, force=False, refresh=False):
     active = [(i, d) for i, d in enumerate(config.get("domains", [])) if d.get("active")]
+    if not active:
+        return DEMO_PREVIEW
     api_key = config.get("sistrix_api_key", "")
 
     def fetch_one(item):
@@ -1141,7 +1160,7 @@ def _build_index_html():
  <h2 class="section-title"><span data-i18n="domains_title">Domains</span><span id="domainStatus" class="domain-status-inline"></span></h2>
  <div id="domainList" aria-live="polite" aria-relevant="additions removals"></div>
  <form class="add-form" onsubmit="event.preventDefault();addDomain()">
- <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" maxlength="8" required></div>
+ <div><label for="newLabel" data-i18n="label">Label</label><input type="text" id="newLabel" placeholder="EXMP" data-i18n-placeholder="label_ph" maxlength="8" required></div>
  <div><label for="newDomain" data-i18n="address">Address</label><input type="text" id="newDomain" placeholder="example.com" data-i18n-placeholder="domain_placeholder" required></div>
  <div><label id="lblType" data-i18n="type">Type</label><div id="newType" class="custom-select" aria-labelledby="lblType"></div></div>
  <div><label id="lblCountry" data-i18n="country">Country</label><div id="newCountry" class="custom-select" aria-labelledby="lblCountry"></div></div>
@@ -1174,7 +1193,7 @@ const I18N = {
  confirm_delete:'¿Eliminar {x}?', enable:'Activar', disable:'Desactivar', fill_fields:'Rellena dominio y label', refresh_confirm_short:'Añadirá solo los datos faltantes', credits_available:'créditos disponibles', apikey_removed:'API Key eliminada', apikey_checking:'Validando API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key no válida', credits:'créditos', credits_used:'créditos consumidos', loading_data_short:'Cargando datos...',
  cache:'caché', api:'api', brand_title:'Tarjeta personalizada', brand_fetch:'Obtener', brand_or:'o', brand_saved:'Tarjeta personalizada guardada', brand_logo_ok:'Logo cargado', brand_logo_err:'No se pudo cargar el logo', layout_reset:'Layout reseteado', brand_upload:'Subir imagen', brand_delete_logo:'Eliminar',
  edit:'Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
- label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
+ label:'Etiqueta', label_ph:'EJMP', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  screen_off:'Apagar pantalla', screen_on:'Encender pantalla',
  prev_slide:'Anterior', next_slide:'Siguiente',
@@ -1192,7 +1211,7 @@ const I18N = {
  confirm_delete:'Delete {x}?', enable:'Enable', disable:'Disable', fill_fields:'Fill in domain and label', refresh_confirm_short:'Will only add missing data', credits_available:'credits left', apikey_removed:'API Key removed', apikey_checking:'Validating API Key...', apikey_valid:'API Key valid', apikey_invalid:'Invalid API Key', credits:'credits', credits_used:'credits used', loading_data_short:'Loading data...',
  cache:'cache', api:'api', brand_title:'Personalized card', brand_fetch:'Fetch', brand_or:'or', brand_saved:'Personalized card saved', brand_logo_ok:'Logo loaded', brand_logo_err:'Could not load logo', layout_reset:'Layout reset', brand_upload:'Upload image', brand_delete_logo:'Delete',
  edit:'Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
- label:'Label', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
+ label:'Label', label_ph:'EXMP', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
  screen_off:'Turn off screen', screen_on:'Turn on screen',
  prev_slide:'Previous', next_slide:'Next',
@@ -1210,7 +1229,7 @@ const I18N = {
  confirm_delete:'Supprimer {x} ?', enable:'Activer', disable:'Désactiver', fill_fields:'Remplissez domaine et label', refresh_confirm_short:'Ajoutera uniquement les données manquantes', credits_available:'crédits disponibles', apikey_removed:'Clé API supprimée', apikey_checking:'Validation de la clé API...', apikey_valid:'Clé API valide', apikey_invalid:'Clé API invalide', credits:'crédits', credits_used:'crédits consommés', loading_data_short:'Chargement...',
  cache:'cache', api:'api', brand_title:'Carte personnalisée', brand_fetch:'Obtenir', brand_or:'ou', brand_saved:'Carte personnalisée enregistrée', brand_logo_ok:'Logo chargé', brand_logo_err:'Impossible de charger le logo', layout_reset:'Layout réinitialisé', brand_upload:'Télécharger image', brand_delete_logo:'Supprimer',
  edit:'Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
- label:'Libellé', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
+ label:'Libellé', label_ph:'EXPL', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
  screen_off:'Éteindre l\u2019écran', screen_on:'Allumer l\u2019écran',
  prev_slide:'Précédent', next_slide:'Suivant',
@@ -1228,7 +1247,7 @@ const I18N = {
  confirm_delete:'Eliminare {x}?', enable:'Attivare', disable:'Disattivare', fill_fields:'Compila dominio e label', refresh_confirm_short:'Aggiungerà solo i dati mancanti', credits_available:'crediti disponibili', apikey_removed:'API Key rimossa', apikey_checking:'Validazione API Key...', apikey_valid:'API Key valida', apikey_invalid:'API Key non valida', credits:'crediti', credits_used:'crediti consumati', loading_data_short:'Caricamento...',
  cache:'cache', api:'api', brand_title:'Scheda personalizzata', brand_fetch:'Ottieni', brand_or:'o', brand_saved:'Scheda personalizzata salvata', brand_logo_ok:'Logo caricato', brand_logo_err:'Impossibile caricare il logo', layout_reset:'Layout reimpostato', brand_upload:'Carica immagine', brand_delete_logo:'Elimina',
  edit:'Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
- label:'Etichetta', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
+ label:'Etichetta', label_ph:'ESMP', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
  screen_off:'Spegni schermo', screen_on:'Accendi schermo',
  prev_slide:'Precedente', next_slide:'Successivo',
@@ -1246,7 +1265,7 @@ const I18N = {
  confirm_delete:'{x} löschen?', enable:'Aktivieren', disable:'Deaktivieren', fill_fields:'Domain und Label ausfüllen', refresh_confirm_short:'Nur fehlende Daten werden hinzugefügt', credits_available:'Credits verfügbar', apikey_removed:'API Key entfernt', apikey_checking:'API Key wird überprüft...', apikey_valid:'API Key gültig', apikey_invalid:'Ungültiger API Key', credits:'Credits', credits_used:'Credits verbraucht', loading_data_short:'Lade Daten...',
  cache:'Cache', api:'API', brand_title:'Personalisierte Karte', brand_fetch:'Laden', brand_or:'oder', brand_saved:'Personalisierte Karte gespeichert', brand_logo_ok:'Logo geladen', brand_logo_err:'Logo konnte nicht geladen werden', layout_reset:'Layout zurückgesetzt', brand_upload:'Bild hochladen', brand_delete_logo:'Löschen',
  edit:'Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
- label:'Label', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
+ label:'Label', label_ph:'BSPL', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
  screen_off:'Bildschirm ausschalten', screen_on:'Bildschirm einschalten',
  prev_slide:'Zurück', next_slide:'Weiter',
@@ -1264,7 +1283,7 @@ const I18N = {
  confirm_delete:'Eliminar {x}?', enable:'Ativar', disable:'Desativar', fill_fields:'Preenche domínio e label', refresh_confirm_short:'Adicionará apenas os dados em falta', credits_available:'créditos disponíveis', apikey_removed:'API Key removida', apikey_checking:'A validar API Key...', apikey_valid:'API Key válida', apikey_invalid:'API Key inválida', credits:'créditos', credits_used:'créditos consumidos', loading_data_short:'A carregar dados...',
  cache:'cache', api:'api', brand_title:'Cartão personalizado', brand_fetch:'Obter', brand_or:'ou', brand_saved:'Cartão personalizado guardado', brand_logo_ok:'Logo carregado', brand_logo_err:'Não foi possível carregar o logo', layout_reset:'Layout reposto', brand_upload:'Carregar imagem', brand_delete_logo:'Eliminar',
  edit:'Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
- label:'Etiqueta', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
+ label:'Etiqueta', label_ph:'EXMP', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
  screen_off:'Desligar ecrã', screen_on:'Ligar ecrã',
  prev_slide:'Anterior', next_slide:'Seguinte',
