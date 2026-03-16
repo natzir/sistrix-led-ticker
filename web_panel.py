@@ -17,6 +17,7 @@ import json
 import io
 import gzip
 import hashlib
+import re
 import threading
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -36,6 +37,14 @@ if not CONFIG_PATH.exists() and CONFIG_DEFAULT.exists():
     shutil.copy(CONFIG_DEFAULT, CONFIG_PATH)
 
 app = Flask(__name__)
+
+@app.after_request
+def add_security_headers(resp):
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return resp
+
 _config_lock = threading.Lock()
 _config_cache = None
 _config_mtime = 0
@@ -69,8 +78,14 @@ def save_config(data):
 # SMART CACHE — Only queries API when fresh data is needed
 # ============================================================
 
+_SAFE_FILENAME = re.compile(r'[^A-Za-z0-9_-]')
+
+def _sanitize(s):
+    return _SAFE_FILENAME.sub('', s)
+
 def get_cache_path(label, country, mode):
-    return CACHE_DIR / f"{label}_{country}_{mode}.json"
+    safe = f"{_sanitize(label)}_{_sanitize(country)}_{_sanitize(mode)}"
+    return CACHE_DIR / f"{safe}.json"
 
 
 def read_cache(label, country, mode):
@@ -284,16 +299,24 @@ def add_domain():
         if field not in data:
             return jsonify({"error": f"Missing field: {field}"}), 400
 
+    domain_val = str(data["domain"]).strip().lower()[:253]
+    country_val = str(data["country"]).strip().lower()[:5]
+    label_val = str(data["label"]).strip().upper()[:8]
+    if not domain_val or not label_val or not country_val:
+        return jsonify({"error": "Empty field"}), 400
     addr_type = data.get("type", "domain")
     if addr_type not in ("domain", "host", "path", "url"):
         addr_type = "domain"
+    mode_val = data.get("mode", "weekly")
+    if mode_val not in ("weekly", "daily"):
+        mode_val = "weekly"
     new_domain = {
-        "domain": data["domain"].strip().lower(),
-        "country": data["country"].strip().lower(),
-        "label": data["label"].strip().upper()[:8],
-        "mode": data.get("mode", "weekly"),
+        "domain": domain_val,
+        "country": country_val,
+        "label": label_val,
+        "mode": mode_val,
         "type": addr_type,
-        "active": data.get("active", True),
+        "active": bool(data.get("active", True)),
     }
     config.setdefault("domains", []).append(new_domain)
     save_config(config)
@@ -323,9 +346,11 @@ def update_domain(index):
             elif key == "type" and data[key] in ("domain", "host", "path", "url"):
                 domain[key] = data[key]
             elif key == "label":
-                domain[key] = data[key].strip().upper()[:8]
-            else:
-                domain[key] = data[key].strip().lower()
+                domain[key] = str(data[key]).strip().upper()[:8]
+            elif key == "domain":
+                domain[key] = str(data[key]).strip().lower()[:253]
+            elif key == "country":
+                domain[key] = str(data[key]).strip().lower()[:5]
     save_config(config)
     return jsonify({"ok": True, "domain": domain})
 
@@ -484,7 +509,7 @@ def update_api_key():
         return jsonify({"ok": True, "credits": credits})
     except Exception as e:
         print(f"[API VALIDATE ERROR] {e}")
-        return jsonify({"ok": False, "error": str(e)}), 401
+        return jsonify({"ok": False, "error": "validation_error"}), 401
 
 
 def _fetch_credits(api_key):
@@ -1340,6 +1365,9 @@ async function setLang(lang) {
  if (currentConfig.domains) { lastDomainHash = ''; renderDomains(currentConfig.domains); }
  renderCycleBtns();
  initFormSelects();
+ if (window._countries) {
+ initCustomSelect(DOM.newCountry, countryOptions(window._countries), LANG_TO_COUNTRY[lang] || 'es');
+ }
  updateStatusBar();
  if (totalSlides() > 0) renderSlide();
  postJSON('/api/language', {language:lang});
@@ -3525,9 +3553,10 @@ function countryOptions(countries) {
  return countries.map(c => ({value: c.code, text: c.code.toUpperCase(), search: c.code + ' ' + c.name}));
 }
 
+const LANG_TO_COUNTRY = {es:'es', en:'uk', fr:'fr', it:'it', de:'de', pt:'pt'};
 function setCountries(countries) {
  window._countries = countries;
- initCustomSelect(DOM.newCountry, countryOptions(countries), 'es');
+ initCustomSelect(DOM.newCountry, countryOptions(countries), LANG_TO_COUNTRY[currentLang] || 'es');
 }
 async function loadCountries() {
  const res = await fetch('/api/countries');
@@ -3539,6 +3568,21 @@ DOM.newType.onchange = () => {
  const placeholders = {domain:'example.com', host:'www.example.com', path:'example.com/blog/', url:'example.com/blog/post-1'};
  DOM.newDomain.placeholder = placeholders[DOM.newType.value] || 'example.com';
 };
+// Auto-detect type and clean protocol on blur
+function cleanAndDetectType() {
+ let v = DOM.newDomain.value.trim();
+ v = v.replace(/^https?:\/\//i, '');
+ DOM.newDomain.value = v;
+ if (!v || v.length < 4) return;
+ let guess = 'domain';
+ if (v.includes('/')) guess = v.endsWith('/') ? 'path' : 'url';
+ else if (/^[^.]+\.[^.]+\.[^.]+/.test(v)) guess = 'host';
+ if (DOM.newType.value !== guess) {
+ DOM.newType.value = guess;
+ if (DOM.newType.onchange) DOM.newType.onchange();
+ }
+}
+DOM.newDomain.addEventListener('blur', cleanAndDetectType);
 initFormSelects();
 
 // Init
@@ -3568,6 +3612,7 @@ window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTim
   const data = await res.json();
   setCountries(data.countries);
   applyConfig(data.config);
+  if (window._countries) initCustomSelect(DOM.newCountry, countryOptions(window._countries), LANG_TO_COUNTRY[currentLang] || 'es');
   previewData = data.preview;
   lastCacheData = data.cache;
   updateStatusBar();
