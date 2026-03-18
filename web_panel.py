@@ -101,11 +101,11 @@ def read_cache(label, country, mode):
 
 
 def write_cache(label, country, mode, data):
-    """Writes data to cache."""
+    """Writes data to cache (does not mutate the original dict)."""
     path = get_cache_path(label, country, mode)
-    data["cached_at"] = datetime.now().isoformat()
+    to_write = {**data, "cached_at": datetime.now().isoformat()}
     with open(path, "w") as f:
-        json.dump(data, f)
+        json.dump(to_write, f)
 
 
 def cache_is_fresh(cached_data, mode, skip_time_check=False):
@@ -127,12 +127,9 @@ def cache_is_fresh(cached_data, mode, skip_time_check=False):
             if (now - cached_at) >= timedelta(hours=6):
                 return False
         else:
-            # weekly: stale if a Friday has passed since cache was written
-            if cached_at.date() != now.date():
-                days_until_friday = (4 - cached_at.weekday()) % 7 or 7
-                next_friday = (cached_at + timedelta(days=days_until_friday)).date()
-                if next_friday <= now.date():
-                    return False
+            # weekly: stale after 24h (SISTRIX can publish new weekly data any day)
+            if (now - cached_at) >= timedelta(hours=24):
+                return False
 
     # Check 2: is the latest data point too old?
     # SISTRIX daily has ~2 day lag, weekly ~1 week
@@ -140,7 +137,7 @@ def cache_is_fresh(cached_data, mode, skip_time_check=False):
     if dates:
         try:
             latest = datetime.fromisoformat(dates[0].replace("Z", "")).date()
-            max_age = timedelta(days=3) if mode == "daily" else timedelta(days=9)
+            max_age = timedelta(days=3) if mode == "daily" else timedelta(days=7)
             if (now.date() - latest) > max_age:
                 return False
         except (ValueError, TypeError):
@@ -164,20 +161,19 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
     mode = domain_config.get("mode", "weekly")
     addr_type = domain_config.get("type", "domain")
 
+    # Read cache once — reused throughout
+    cached = read_cache(label, country, mode)
+
     # Try cache first
-    if not force:
-        cached = read_cache(label, country, mode)
-        if cached:
-            if refresh:
-                if cache_is_fresh(cached, mode, skip_time_check=True):
-                    return {**cached, "_from_cache": True}
-            elif cache_is_fresh(cached, mode):
+    if not force and cached:
+        if refresh:
+            if cache_is_fresh(cached, mode, skip_time_check=True):
                 return {**cached, "_from_cache": True}
+        elif cache_is_fresh(cached, mode):
+            return {**cached, "_from_cache": True}
 
     # No API key, return cache only (if available)
     if not api_key or api_key == "TU_API_KEY_AQUI":
-        if force:
-            cached = read_cache(label, country, mode)
         if cached:
             return {**cached, "_from_cache": True}
         return None
@@ -191,11 +187,31 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
         "format": "json",
     }
 
-    params["history"] = "true"
     if mode == "daily":
         params["daily"] = "true"
 
     try:
+        # Quick check first (1 credit): fetch only the latest value
+        if not force and cached and cached.get("history"):
+            resp = http_requests.get(url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            answer = data.get("answer") or []
+            entries = answer[0].get("sichtbarkeitsindex", []) if answer else []
+            if not entries:
+                return {**cached, "_from_cache": True}
+            entries.sort(key=lambda x: x.get("date", ""), reverse=True)
+            latest_value = round(float(entries[0].get("value", 0)), 6)
+            latest_date = entries[0].get("date", "")
+            cached_dates = cached.get("dates", [])
+            cached_value = round(float(cached.get("current_value", -1)), 6)
+            if cached_dates and latest_date == cached_dates[0] and latest_value == cached_value:
+                # No new data — renew cache timestamp and return
+                write_cache(label, country, mode, cached)
+                return {**cached, "_from_cache": True, "_credits_note": "Quick check: 1 credit (no change)"}
+
+        # Full history fetch (needed: first load, force, or new data detected)
+        params["history"] = "true"
         resp = http_requests.get(url, params=params, timeout=30)
         resp.raise_for_status()
         data = resp.json()
@@ -203,7 +219,9 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
         answer = data.get("answer") or []
         entries = answer[0].get("sichtbarkeitsindex", []) if answer else []
         if not entries:
-            return read_cache(label, country, mode)
+            if cached:
+                return {**cached, "_from_cache": True}
+            return None
 
         entries.sort(key=lambda x: x.get("date", ""), reverse=True)
 
@@ -232,7 +250,6 @@ def fetch_sistrix(domain_config, force=False, refresh=False, api_key=None):
 
     except Exception as e:
         print(f"[API ERROR] {domain}: {e}")
-        cached = read_cache(label, country, mode)
         if cached:
             return {**cached, "_from_cache": True}
         return None
