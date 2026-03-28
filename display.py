@@ -169,6 +169,16 @@ class VisibilityData:
         return "D" if self.mode == "daily" else "W"
 
 
+DEMO_DATA = VisibilityData(
+    domain="example.com",
+    label="DEMO",
+    country="es",
+    mode="weekly",
+    current_value=12.45,
+    previous_value=12.10,
+    history=[12.45, 12.10, 11.82, 12.01, 11.45, 11.60, 10.95, 10.42, 10.78, 10.15, 9.87, 9.35, 9.62, 8.90, 8.55, 8.20],
+)
+
 # ============================================================
 # SISTRIX API
 # ============================================================
@@ -929,12 +939,24 @@ def main():
             time.sleep(1)
             continue
 
-        # No API key or no domains → show brand card
-        if not config.api_key or config.api_key == "TU_API_KEY_AQUI" or not config.active_domains:
-            display_frame(matrix, render_brand(scroll_offset))
-            scroll_offset += 1
+        # No active domains → rotate demo data + brand card
+        if not config.active_domains:
+            # Demo data slide
+            display_frame(matrix, render_frame(DEMO_DATA))
+            time.sleep(config.cycle_seconds)
+            config.reload()
+            if config.screen_off:
+                continue
+            # Brand card slide with scroll
             msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
-            time.sleep(msg_speed)
+            brand_start = time.time()
+            while time.time() - brand_start < config.cycle_seconds:
+                config.reload()
+                if config.screen_off:
+                    break
+                display_frame(matrix, render_brand(scroll_offset))
+                scroll_offset += 1
+                time.sleep(msg_speed)
             continue
 
         # Reload config and data if due
@@ -944,16 +966,13 @@ def main():
 
             if new_data:
                 domains_data = new_data
-            elif not domains_data:
-                display_frame(matrix, render_no_data())
-                time.sleep(30)
-                continue
 
             last_fetch = now
 
         if not domains_data:
-            display_frame(matrix, render_no_data())
-            time.sleep(10)
+            # No data yet (no API key, no cache) → show demo + brand
+            display_frame(matrix, render_frame(DEMO_DATA))
+            time.sleep(config.cycle_seconds)
             continue
 
         # Cycle through active domains + brand card

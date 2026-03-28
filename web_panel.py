@@ -316,6 +316,9 @@ def add_domain():
         if field not in data:
             return jsonify({"error": f"Missing field: {field}"}), 400
 
+    api_key = config.get("sistrix_api_key", "")
+    if not api_key or api_key == "TU_API_KEY_AQUI":
+        return jsonify({"error": "API key required"}), 400
     domain_val = str(data["domain"]).strip().lower()[:253]
     country_val = str(data["country"]).strip().lower()[:5]
     label_val = str(data["label"]).strip().upper()[:8]
@@ -1238,7 +1241,7 @@ const I18N = {
  edit:'Editar', done_editing:'Guardar', reset:'Restablecer', edit_hint_touch:'Mantén pulsado para editar texto/color',
  label:'Etiqueta', label_ph:'EJMP', mode_weekly:'Semanal', mode_daily:'Diario', bl_speed:'Velocidad',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
- api_hint:'Añade tu API key de SISTRIX para empezar',
+ api_hint:'Añade tu API key de SISTRIX para empezar', api_required:'Configura tu API key antes de añadir dominios',
  screen_off:'Apagar pantalla', screen_on:'Encender pantalla',
  prev_slide:'Anterior', next_slide:'Siguiente',
  toggle_theme:'Cambiar tema', play_pause:'Reproducir / Pausar', move_up:'Subir', move_down:'Bajar', cancel:'Cancelar', cycle_time:'Rotar cada {s}s', drag_reorder:'Arrastrar para reordenar', click_edit:'Clic para editar', click_again_confirm:'Clica de nuevo para confirmar',
@@ -1257,7 +1260,7 @@ const I18N = {
  edit:'Edit', done_editing:'Save', reset:'Reset', edit_hint_touch:'Long press to edit text/color',
  label:'Label', label_ph:'EXMP', mode_weekly:'Weekly', mode_daily:'Daily', bl_speed:'Speed',
  bl_slow:'Slow', bl_fast:'Fast', bl_delete_logo:'Delete logo',
- api_hint:'Add your SISTRIX API key to get started',
+ api_hint:'Add your SISTRIX API key to get started', api_required:'Set up your API key before adding domains',
  screen_off:'Turn off screen', screen_on:'Turn on screen',
  prev_slide:'Previous', next_slide:'Next',
  toggle_theme:'Toggle theme', play_pause:'Play / Pause', move_up:'Move up', move_down:'Move down', cancel:'Cancel', cycle_time:'Rotate every {s}s', drag_reorder:'Drag to reorder', click_edit:'Click to edit', click_again_confirm:'Click again to confirm',
@@ -1276,7 +1279,7 @@ const I18N = {
  edit:'Éditer', done_editing:'Enregistrer', reset:'Réinitialiser', edit_hint_touch:'Appui long pour éditer texte/couleur',
  label:'Libellé', label_ph:'EXPL', mode_weekly:'Hebdomadaire', mode_daily:'Quotidien', bl_speed:'Vitesse',
  bl_slow:'Lent', bl_fast:'Rapide', bl_delete_logo:'Supprimer le logo',
- api_hint:'Ajoutez votre clé API SISTRIX pour commencer',
+ api_hint:'Ajoutez votre clé API SISTRIX pour commencer', api_required:'Configurez votre clé API pour ajouter des domaines',
  screen_off:'Éteindre l\u2019écran', screen_on:'Allumer l\u2019écran',
  prev_slide:'Précédent', next_slide:'Suivant',
  toggle_theme:'Changer le thème', play_pause:'Lecture / Pause', move_up:'Monter', move_down:'Descendre', cancel:'Annuler', cycle_time:'Rotation toutes les {s}s', drag_reorder:'Glisser pour réorganiser', click_edit:'Cliquer pour éditer', click_again_confirm:'Cliquez à nouveau pour confirmer',
@@ -1295,7 +1298,7 @@ const I18N = {
  edit:'Modifica', done_editing:'Salva', reset:'Ripristina', edit_hint_touch:'Tieni premuto per modificare testo/colore',
  label:'Etichetta', label_ph:'ESMP', mode_weekly:'Settimanale', mode_daily:'Giornaliero', bl_speed:'Velocità',
  bl_slow:'Lento', bl_fast:'Veloce', bl_delete_logo:'Elimina logo',
- api_hint:'Aggiungi la tua API key SISTRIX per iniziare',
+ api_hint:'Aggiungi la tua API key SISTRIX per iniziare', api_required:'Configura la tua API key prima di aggiungere domini',
  screen_off:'Spegni schermo', screen_on:'Accendi schermo',
  prev_slide:'Precedente', next_slide:'Successivo',
  toggle_theme:'Cambia tema', play_pause:'Play / Pausa', move_up:'Sposta su', move_down:'Sposta giù', cancel:'Annulla', cycle_time:'Ruota ogni {s}s', drag_reorder:'Trascina per riordinare', click_edit:'Clicca per modificare', click_again_confirm:'Clicca di nuovo per confermare',
@@ -1314,7 +1317,7 @@ const I18N = {
  edit:'Bearbeiten', done_editing:'Speichern', reset:'Zurücksetzen', edit_hint_touch:'Lang drücken um Text/Farbe zu bearbeiten',
  label:'Label', label_ph:'BSPL', mode_weekly:'Wöchentlich', mode_daily:'Täglich', bl_speed:'Geschwindigkeit',
  bl_slow:'Langsam', bl_fast:'Schnell', bl_delete_logo:'Logo löschen',
- api_hint:'Füge deinen SISTRIX API-Schlüssel hinzu',
+ api_hint:'Füge deinen SISTRIX API-Schlüssel hinzu', api_required:'Konfiguriere deinen API-Schlüssel bevor du Domains hinzufügst',
  screen_off:'Bildschirm ausschalten', screen_on:'Bildschirm einschalten',
  prev_slide:'Zurück', next_slide:'Weiter',
  toggle_theme:'Thema wechseln', play_pause:'Abspielen / Pause', move_up:'Nach oben', move_down:'Nach unten', cancel:'Abbrechen', cycle_time:'Alle {s}s wechseln', drag_reorder:'Ziehen zum Umsortieren', click_edit:'Klicken zum Bearbeiten', click_again_confirm:'Erneut klicken zum Bestätigen',
@@ -1333,7 +1336,7 @@ const I18N = {
  edit:'Editar', done_editing:'Guardar', reset:'Repor', edit_hint_touch:'Mantém pressionado para editar texto/cor',
  label:'Etiqueta', label_ph:'EXMP', mode_weekly:'Semanal', mode_daily:'Diário', bl_speed:'Velocidade',
  bl_slow:'Lento', bl_fast:'Rápido', bl_delete_logo:'Eliminar logo',
- api_hint:'Adiciona a tua API key SISTRIX para começar',
+ api_hint:'Adiciona a tua API key SISTRIX para começar', api_required:'Configura a tua API key antes de adicionar domínios',
  screen_off:'Desligar ecrã', screen_on:'Ligar ecrã',
  prev_slide:'Anterior', next_slide:'Seguinte',
  toggle_theme:'Mudar tema', play_pause:'Reproduzir / Pausar', move_up:'Subir', move_down:'Descer', cancel:'Cancelar', cycle_time:'Rodar a cada {s}s', drag_reorder:'Arrastar para reordenar', click_edit:'Clicar para editar', click_again_confirm:'Clique novamente para confirmar',
@@ -2451,6 +2454,7 @@ async function addDomain() {
  const mode = DOM.newMode.value;
  const type = DOM.newType.value;
  if (!domain || !label) { toast(t('fill_fields')); return; }
+ if (!currentConfig.has_api_key) { toast(t('api_required')); return; }
  if (type === 'path' && !domain.includes('/')) { toast('Include / in path (e.g. example.com/blog/)'); return; }
  if (type === 'url' && !domain.includes('/')) { toast('Include full path (e.g. example.com/page)'); return; }
  await postJSON('/api/domains', {domain, country, label, mode, type, active: true});

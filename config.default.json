@@ -1,7 +1,7 @@
 {
   "sistrix_api_key": "",
   "display": {
-    "brightness": 60,
+    "brightness": 40,
     "cycle_seconds": 10,
     "refresh_minutes": 60,
     "screen_off": false
