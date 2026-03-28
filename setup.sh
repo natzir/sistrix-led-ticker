@@ -70,7 +70,7 @@ echo ""
 echo "[3/3] Checking..."
 sleep 2
 if systemctl is-active --quiet sistrix-web; then
-    echo "✓ Web panel active at http://raspberrypi.local:5000"
+    echo "✓ Web panel active at http://raspberrypi.local:5001"
 else
     echo "✗ Error starting web panel"
     sudo journalctl -u sistrix-web -n 20
@@ -82,7 +82,7 @@ echo "  Setup complete!"
 echo "=================================="
 echo ""
 echo "  Open in your browser:"
-echo "  → http://raspberrypi.local:5000"
+echo "  → http://raspberrypi.local:5001"
 echo ""
 echo "  1. Configure your SISTRIX API key"
 echo "  2. Add domains"
