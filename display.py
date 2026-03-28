@@ -16,9 +16,8 @@ Requires: Raspberry Pi + HUB75 64x32 panel + Adafruit Bonnet
 import time
 import json
 import os
-import sys
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional
 from pathlib import Path
@@ -816,55 +815,6 @@ def _color_at_x(color_type, color_data, px):
             int(c1[2] + (c2[2] - c1[2]) * t),
         )
     return (255, 255, 255)
-
-def _draw_rainbow_bitmap(img, x, y, text, font_name, h=None):
-    text = text.upper()
-    parsed, src_w, src_h, narrow, actual_h = _resolve_font(font_name, h)
-
-    # Scaled path
-    if actual_h != src_h:
-        char_px_w = round(src_w * actual_h / src_h)
-        char_step = char_px_w + max(1, round(actual_h / src_h))
-        map_y = _build_scale_map(src_h, actual_h)
-        map_x = _build_scale_map(src_w, char_px_w)
-        raw_font = F5x7 if src_w == 5 else F3x5
-        cx = x
-        for i, ch in enumerate(text):
-            color = RAINBOW_COLORS[i % len(RAINBOW_COLORS)]
-            if ch == ' ':
-                cx += char_step
-                continue
-            bits = raw_font.get(ch)
-            if bits:
-                for oy in range(actual_h):
-                    for ox in range(char_px_w):
-                        if bits[map_y[oy] * src_w + map_x[ox]] == '1':
-                            dx = cx + ox
-                            dy = y + oy
-                            if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
-                                img.putpixel((dx, dy), color)
-            cx += char_step
-        return
-
-    # Native size path
-    cx = x
-    for i, ch in enumerate(text):
-        color = RAINBOW_COLORS[i % len(RAINBOW_COLORS)]
-        if ch == ' ':
-            cx += SPACE_WIDTH + 1
-            continue
-        nr = narrow.get(ch)
-        cw = nr[0] if nr else src_w
-        off = nr[1] if nr else 0
-        pixels = parsed.get(ch)
-        if pixels:
-            for px, py in pixels:
-                if off <= px < off + cw:
-                    dx = cx + px - off
-                    dy = y + py
-                    if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
-                        img.putpixel((dx, dy), color)
-        cx += cw + 1
 
 
 # ============================================================
