@@ -310,6 +310,36 @@ F3x5 = {
     '@':'010101111101011',
 }
 
+F4x6 = {
+    '0':'011010011001100110010110','1':'010011000100010001001111',
+    '2':'011010010010010010001111','3':'011000010110000100010110',
+    '4':'100110011111000100010001','5':'111110001110000100011110',
+    '6':'011010001110100110010110','7':'111100010010001001000100',
+    '8':'011010010110100110010110','9':'011010011001011100010110',
+    'A':'011010011001111110011001','B':'111010011110100110011110',
+    'C':'011010011000100010010110','D':'111010011001100110011110',
+    'E':'111110001110100010001111','F':'111110001110100010001000',
+    'G':'011010001011100110010111','H':'100110011111100110011001',
+    'I':'011001000100010001000110','J':'001100100010001010100110',
+    'K':'100110101100110010101001','L':'100010001000100010001111',
+    'M':'100111111111100110011001','N':'100111011111101110011001',
+    'O':'011010011001100110010110','P':'111010011001111010001000',
+    'Q':'011010011001100110100101','R':'111010011001111010101001',
+    'S':'011110000110000100011110','T':'111101000100010001000100',
+    'U':'100110011001100110010110','V':'100110011001100101100110',
+    'W':'100110011001111111111001','X':'100110010110011010011001',
+    'Y':'100110010110001000100010','Z':'111100010010010010001111',
+    '.':'000000000000000000000100',',':'000000000000000001001000',
+    '-':'000000001111000000000000','+':'000001001111010000000000',
+    '%':'100100100010010001001001','!':'010001000100010000000100',
+    ' ':'000000000000000000000000','/':'000100010010010010001000',
+    ':':'000001000000000001000000',
+    '$':'010011111100011100110100','&':'011010010110100110010111',
+    '(':'001001000100010001000010',')':'010000100010001000100100',
+    '=':'000011110000111100000000','#':'010111110101111101010000',
+    '@':'011010011011101100010110',
+}
+
 F5x7 = {
     '0':'01110100011000110001100011000101110',
     '1':'00100011000010000100001000010011111',
@@ -380,61 +410,148 @@ def _parse_font(font_dict, width, height):
     return parsed
 
 PF3x5 = _parse_font(F3x5, 3, 5)
+PF4x6 = _parse_font(F4x6, 4, 6)
 PF5x7 = _parse_font(F5x7, 5, 7)
 
 
-def _draw_bitmap_text(img, x, y, text, font_name, color):
-    """Draw text using bitmap font, pixel by pixel. Returns total width."""
-    text = text.upper()
-    if font_name == "large":
-        parsed = PF5x7
-        src_w, src_h = 5, 7
-        narrow = NARROW_5x7
-    else:
-        parsed = PF3x5
-        src_w, src_h = 3, 5
-        narrow = NARROW_3x5
+def _build_scale_map(src, dst):
+    """Bresenham-distributed pixel mapping for even strokes (matches web panel)."""
+    if dst == src:
+        return None
+    result = [0] * dst
+    pos = 0
+    for s in range(src):
+        next_pos = round((s + 1) * dst / src)
+        for p in range(next_pos - pos):
+            result[pos + p] = s
+        pos = next_pos
+    return result
 
+
+def _resolve_font(font_name, h):
+    """Resolve font parameters matching web panel logic."""
+    is_large = font_name == "large"
+    # Native 4x6 font when small font at h=6
+    if not is_large and h == 6:
+        return PF4x6, 4, 6, {}, h
+    # Auto-promote small to large when h >= 7
+    if not is_large and h is not None and h >= 7:
+        is_large = True
+    if is_large:
+        src_w, src_h, narrow = 5, 7, NARROW_5x7
+        parsed = PF5x7
+    else:
+        src_w, src_h, narrow = 3, 5, NARROW_3x5
+        parsed = PF3x5
+    actual_h = h if h else src_h
+    return parsed, src_w, src_h, narrow, actual_h
+
+
+def _draw_bitmap_text(img, x, y, text, font_name, color, h=None):
+    """Draw text using bitmap font, pixel by pixel. Returns total width.
+    color can be RGB tuple or color string ('rainbow', 'gradient:...', '#hex').
+    """
+    text = text.upper()
+    parsed, src_w, src_h, narrow, actual_h = _resolve_font(font_name, h)
+
+    # Resolve color: string → dynamic, tuple → solid
+    if isinstance(color, str):
+        ct, cd = _parse_color_str(color)
+    else:
+        ct, cd = "solid", color
+
+    def _pixel_color(dx):
+        return _color_at_x(ct, cd, dx) if ct != "solid" else cd
+
+    # Native 4x6 path (no narrow chars)
+    if not narrow and parsed is PF4x6:
+        cx = x
+        for ch in text:
+            if ch == ' ':
+                cx += SPACE_WIDTH + 1
+                continue
+            bits = parsed.get(ch)
+            if bits:
+                for px, py in bits:
+                    dx = cx + px
+                    dy = y + py
+                    if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
+                        img.putpixel((dx, dy), _pixel_color(dx))
+            cx += 5  # 4px char + 1px spacing
+        return cx - x
+
+    # Native size — fast path
+    if actual_h == src_h:
+        cx = x
+        for ch in text:
+            if ch == ' ':
+                cx += SPACE_WIDTH + 1
+                continue
+            nr = narrow.get(ch)
+            cw = nr[0] if nr else src_w
+            off = nr[1] if nr else 0
+            pixels = parsed.get(ch)
+            if pixels:
+                for px, py in pixels:
+                    if off <= px < off + cw:
+                        dx = cx + px - off
+                        dy = y + py
+                        if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
+                            img.putpixel((dx, dy), _pixel_color(dx))
+            cx += cw + 1
+        return cx - x
+
+    # Scaled — Bresenham mapping (matches web panel)
+    char_px_w = round(src_w * actual_h / src_h)
+    char_step = char_px_w + max(1, round(actual_h / src_h))
+    map_y = _build_scale_map(src_h, actual_h)
+    map_x = _build_scale_map(src_w, char_px_w)
+    # Build raw bitmap dict for scaled rendering
+    raw_font = F5x7 if src_w == 5 else F3x5
     cx = x
     for ch in text:
         if ch == ' ':
-            cx += SPACE_WIDTH + 1
+            cx += char_step
             continue
-        nr = narrow.get(ch)
-        cw = nr[0] if nr else src_w
-        off = nr[1] if nr else 0
-        pixels = parsed.get(ch)
-        if pixels:
-            for px, py in pixels:
-                if off <= px < off + cw:
-                    dx = cx + px - off
-                    dy = y + py
-                    if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
-                        img.putpixel((dx, dy), color)
-        cx += cw + 1
+        bits = raw_font.get(ch)
+        if bits:
+            for oy in range(actual_h):
+                for ox in range(char_px_w):
+                    if bits[map_y[oy] * src_w + map_x[ox]] == '1':
+                        dx = cx + ox
+                        dy = y + oy
+                        if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
+                            img.putpixel((dx, dy), _pixel_color(dx))
+        cx += char_step
     return cx - x
 
 
-def _measure_text(text, font_name):
+def _measure_text(text, font_name, h=None):
     """Measure text width in pixels."""
     text = text.upper()
-    if font_name == "large":
-        src_w = 5
-        narrow = NARROW_5x7
-    else:
-        src_w = 3
-        narrow = NARROW_3x5
+    parsed, src_w, src_h, narrow, actual_h = _resolve_font(font_name, h)
 
-    w = 0
-    for i, ch in enumerate(text):
-        if ch == ' ':
-            w += SPACE_WIDTH + 1
-        else:
-            nr = narrow.get(ch)
-            w += nr[0] if nr else src_w
-            if i < len(text) - 1:
-                w += 1
-    return w
+    # Native 4x6
+    if not narrow and parsed is PF4x6:
+        return len(text.replace(' ', '')) * 5 + text.count(' ') * (SPACE_WIDTH + 1)
+
+    # Native size
+    if actual_h == src_h:
+        w = 0
+        for i, ch in enumerate(text):
+            if ch == ' ':
+                w += SPACE_WIDTH + 1
+            else:
+                nr = narrow.get(ch)
+                w += nr[0] if nr else src_w
+                if i < len(text) - 1:
+                    w += 1
+        return w
+
+    # Scaled
+    char_px_w = round(src_w * actual_h / src_h)
+    char_step = char_px_w + max(1, round(actual_h / src_h))
+    return len(text) * char_step
 
 
 def _new_frame():
@@ -447,32 +564,40 @@ def render_frame(vd: VisibilityData) -> Image.Image:
 
     layout = config._data.get("data_layout", {})
 
-    # Colors from config
-    label_color = _hex_to_rgb(layout.get("labelColor", "#ffffff"))
-    value_color = _hex_to_rgb(layout.get("valueColor", "#ffffff"))
-    change_up = _hex_to_rgb(layout.get("changeUpColor", "#00dc00"))
-    change_down = _hex_to_rgb(layout.get("changeDownColor", "#ff2828"))
-    country_color = _hex_to_rgb(layout.get("countryColor", "#444444"))
-    mode_color = _hex_to_rgb(layout.get("modeColor", "#999999"))
+    # Colors from config (pass strings to support rainbow/gradient)
+    label_color = layout.get("labelColor", "#ffffff")
+    value_color = layout.get("valueColor", "#ffffff")
+    change_up = layout.get("changeUpColor", "#00dc00")
+    change_down = layout.get("changeDownColor", "#ff2828")
+    country_color = layout.get("countryColor", "#444444")
+    mode_color = layout.get("modeColor", "#999999")
     change_color = change_up if vd.is_up else change_down
 
     # --- Line 1: Label + mode + change % ---
     label_x = layout.get("labelX", 2)
     label_y = layout.get("labelY", 1)
     label_font = layout.get("labelFont", "small")
-    _draw_bitmap_text(img, label_x, label_y, vd.label, label_font, label_color)
+    label_h = layout.get("labelH")
+    _draw_bitmap_text(img, label_x, label_y, vd.label, label_font, label_color, h=label_h)
 
     mode_x = layout.get("modeX", 59)
     mode_y = layout.get("modeY", 8)
     mode_font = layout.get("modeFont", "small")
-    _draw_bitmap_text(img, mode_x, mode_y, vd.mode_label, mode_font, mode_color)
+    mode_h = layout.get("modeH")
+    _draw_bitmap_text(img, mode_x, mode_y, vd.mode_label, mode_font, mode_color, h=mode_h)
 
-    # Change % right-aligned
+    # Change % (right-aligned by default, or at changeX if set)
     change_str = f"{vd.change_pct:+.1f}%"
     change_y = layout.get("changeY", 1)
     change_font = layout.get("changeFont", "small")
-    cw = _measure_text(change_str, change_font)
-    _draw_bitmap_text(img, PANEL_COLS - cw, change_y, change_str, change_font, change_color)
+    change_h = layout.get("changeH")
+    cw = _measure_text(change_str, change_font, h=change_h)
+    change_x_cfg = layout.get("changeX")
+    if change_x_cfg is not None:
+        change_x = change_x_cfg
+    else:
+        change_x = PANEL_COLS - 1 - cw
+    _draw_bitmap_text(img, change_x, change_y, change_str, change_font, change_color, h=change_h)
 
     # --- Line 2: Current value + country ---
     if vd.current_value >= 100:
@@ -483,12 +608,14 @@ def render_frame(vd: VisibilityData) -> Image.Image:
     value_x = layout.get("valueX", 2)
     value_y = layout.get("valueY", 8)
     value_font = layout.get("valueFont", "large")
-    _draw_bitmap_text(img, value_x, value_y, value_str, value_font, value_color)
+    value_h = layout.get("valueH")
+    _draw_bitmap_text(img, value_x, value_y, value_str, value_font, value_color, h=value_h)
 
     country_x = layout.get("countryX", 52)
     country_y = layout.get("countryY", 10)
     country_font = layout.get("countryFont", "small")
-    _draw_bitmap_text(img, country_x, country_y, vd.country, country_font, country_color)
+    country_h = layout.get("countryH")
+    _draw_bitmap_text(img, country_x, country_y, vd.country, country_font, country_color, h=country_h)
 
     # --- Sparkline ---
     spark_y = layout.get("sparkY", 21)
@@ -605,24 +732,23 @@ def render_brand(scroll_offset: int = 0) -> Image.Image:
     name_x = layout.get("nameX", 20)
     name_y = layout.get("nameY", 7)
     name_font = layout.get("nameFont", "small")
-    name_color_str = layout.get("nameColor", "#ffffff")
-    name_color = _hex_to_rgb(name_color_str)
+    name_h = layout.get("nameH")
+    name_color = layout.get("nameColor", "#ffffff")
     if name:
-        _draw_bitmap_text(img, name_x, name_y, name, name_font, name_color)
+        _draw_bitmap_text(img, name_x, name_y, name, name_font, name_color, h=name_h)
 
-    # --- Message (scrolling) ---
+    # --- Message (scrolling, matches web panel logic) ---
     message = brand.get("message", "")
     msg_y = layout.get("msgY", 19)
     msg_font = layout.get("msgFont", "small")
-    msg_color_str = layout.get("msgColor", "#ffffff")
+    msg_h = layout.get("msgH")
+    msg_color = layout.get("msgColor", "#ffffff")
     if message:
-        msg_w = _measure_text(message, msg_font)
-        msg_x = PANEL_COLS - (scroll_offset % (msg_w + PANEL_COLS))
-        if msg_color_str == "rainbow":
-            _draw_rainbow_bitmap(img, msg_x, msg_y, message, msg_font)
-        else:
-            msg_color = _hex_to_rgb(msg_color_str)
-            _draw_bitmap_text(img, msg_x, msg_y, message, msg_font, msg_color)
+        msg_w = _measure_text(message, msg_font, h=msg_h)
+        total_cycle = msg_w + PANEL_COLS
+        draw_x = PANEL_COLS - (scroll_offset % total_cycle)
+        _draw_bitmap_text(img, draw_x, msg_y, message, msg_font, msg_color, h=msg_h)
+        _draw_bitmap_text(img, draw_x + total_cycle, msg_y, message, msg_font, msg_color, h=msg_h)
 
     return img
 
@@ -635,21 +761,82 @@ def _hex_to_rgb(hex_str: str) -> tuple:
 
 
 RAINBOW_COLORS = [
-    (255, 0, 0), (255, 127, 0), (255, 255, 0),
-    (0, 255, 0), (0, 0, 255), (75, 0, 130), (148, 0, 211),
+    (255, 0, 0), (255, 136, 0), (255, 255, 0),
+    (0, 255, 0), (0, 136, 255), (136, 0, 255), (255, 0, 255),
 ]
 
-def _draw_rainbow_bitmap(img, x, y, text, font_name):
-    text = text.upper()
-    if font_name == "large":
-        parsed = PF5x7
-        src_w = 5
-        narrow = NARROW_5x7
-    else:
-        parsed = PF3x5
-        src_w = 3
-        narrow = NARROW_3x5
 
+def _parse_color_str(color_str):
+    """Parse a color string. Returns ('solid', rgb), ('rainbow', None), or ('gradient', (c1, c2))."""
+    if color_str == "rainbow":
+        return ("rainbow", None)
+    if isinstance(color_str, str) and color_str.startswith("gradient:"):
+        parts = color_str.split(":")
+        c1 = _hex_to_rgb(parts[1]) if len(parts) > 1 else (255, 255, 255)
+        c2 = _hex_to_rgb(parts[2]) if len(parts) > 2 else c1
+        return ("gradient", (c1, c2))
+    return ("solid", _hex_to_rgb(color_str))
+
+
+def _color_at_x(color_type, color_data, px):
+    """Get the color for a pixel at x position."""
+    if color_type == "solid":
+        return color_data
+    if color_type == "rainbow":
+        idx = px % (PANEL_COLS or 64)
+        t = idx / max(PANEL_COLS - 1, 1)
+        pos = t * (len(RAINBOW_COLORS) - 1)
+        i = int(pos)
+        f = pos - i
+        if i >= len(RAINBOW_COLORS) - 1:
+            return RAINBOW_COLORS[-1]
+        c1 = RAINBOW_COLORS[i]
+        c2 = RAINBOW_COLORS[i + 1]
+        return (
+            int(c1[0] + (c2[0] - c1[0]) * f),
+            int(c1[1] + (c2[1] - c1[1]) * f),
+            int(c1[2] + (c2[2] - c1[2]) * f),
+        )
+    if color_type == "gradient":
+        c1, c2 = color_data
+        t = px / max(PANEL_COLS - 1, 1)
+        return (
+            int(c1[0] + (c2[0] - c1[0]) * t),
+            int(c1[1] + (c2[1] - c1[1]) * t),
+            int(c1[2] + (c2[2] - c1[2]) * t),
+        )
+    return (255, 255, 255)
+
+def _draw_rainbow_bitmap(img, x, y, text, font_name, h=None):
+    text = text.upper()
+    parsed, src_w, src_h, narrow, actual_h = _resolve_font(font_name, h)
+
+    # Scaled path
+    if actual_h != src_h:
+        char_px_w = round(src_w * actual_h / src_h)
+        char_step = char_px_w + max(1, round(actual_h / src_h))
+        map_y = _build_scale_map(src_h, actual_h)
+        map_x = _build_scale_map(src_w, char_px_w)
+        raw_font = F5x7 if src_w == 5 else F3x5
+        cx = x
+        for i, ch in enumerate(text):
+            color = RAINBOW_COLORS[i % len(RAINBOW_COLORS)]
+            if ch == ' ':
+                cx += char_step
+                continue
+            bits = raw_font.get(ch)
+            if bits:
+                for oy in range(actual_h):
+                    for ox in range(char_px_w):
+                        if bits[map_y[oy] * src_w + map_x[ox]] == '1':
+                            dx = cx + ox
+                            dy = y + oy
+                            if 0 <= dx < PANEL_COLS and 0 <= dy < PANEL_ROWS:
+                                img.putpixel((dx, dy), color)
+            cx += char_step
+        return
+
+    # Native size path
     cx = x
     for i, ch in enumerate(text):
         color = RAINBOW_COLORS[i % len(RAINBOW_COLORS)]
@@ -692,7 +879,7 @@ def setup_matrix():
     options.parallel = 1
     options.hardware_mapping = "adafruit-hat"
     options.brightness = config.brightness
-    options.gpio_slowdown = 5
+    options.gpio_slowdown = 6
     options.scan_mode = 0
     options.pwm_lsb_nanoseconds = 300
     options.pwm_bits = 7
@@ -700,9 +887,16 @@ def setup_matrix():
     return RGBMatrix(options=options)
 
 
+_canvas = None
+
 def display_frame(matrix, img: Image.Image):
+    global _canvas
     if matrix:
-        matrix.SetImage(img)
+        if _canvas is None:
+            _canvas = matrix.CreateFrameCanvas()
+        _canvas.Clear()
+        _canvas.SetImage(img)
+        _canvas = matrix.SwapOnVSync(_canvas)
 
 
 # ============================================================
@@ -739,7 +933,8 @@ def main():
         if not config.api_key or config.api_key == "TU_API_KEY_AQUI" or not config.active_domains:
             display_frame(matrix, render_brand(scroll_offset))
             scroll_offset += 1
-            time.sleep(0.05)
+            msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
+            time.sleep(msg_speed)
             continue
 
         # Reload config and data if due
@@ -778,13 +973,14 @@ def main():
         # Brand card slide (with scrolling message)
         if config.brand.get("enabled") and not config.screen_off:
             brand_start = time.time()
+            msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
             while time.time() - brand_start < config.cycle_seconds:
                 config.reload()
                 if config.screen_off:
                     break
                 display_frame(matrix, render_brand(scroll_offset))
                 scroll_offset += 1
-                time.sleep(0.05)
+                time.sleep(msg_speed)
 
 
 if __name__ == "__main__":
