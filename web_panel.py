@@ -378,11 +378,17 @@ def update_domain(index):
             elif key == "type" and data[key] in ("domain", "host", "path", "url"):
                 domain[key] = data[key]
             elif key == "label":
-                domain[key] = str(data[key]).strip().upper()[:8]
+                val = str(data[key]).strip().upper()[:8]
+                if val:
+                    domain[key] = val
             elif key == "domain":
-                domain[key] = str(data[key]).strip().lower()[:253]
+                val = str(data[key]).strip().lower()[:253]
+                if val:
+                    domain[key] = val
             elif key == "country":
-                domain[key] = str(data[key]).strip().lower()[:5]
+                val = str(data[key]).strip().lower()[:5]
+                if val:
+                    domain[key] = val
     save_config(config)
     return jsonify({"ok": True, "domain": domain})
 
@@ -390,7 +396,7 @@ def update_domain(index):
 @app.route("/api/domains/<int:index>", methods=["DELETE"])
 def delete_domain(index):
     config = load_config()
-    if not get_domain_or_404(config, index):
+    if index < 0 or index >= len(config.get("domains", [])):
         return jsonify({"error": "Invalid index"}), 404
     removed = config["domains"].pop(index)
     save_config(config)

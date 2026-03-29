@@ -295,23 +295,27 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
         print(f"[ERROR] {domain}: {e}")
 
         # Try loading from cache
-        if cache_file.exists():
-            try:
-                with open(cache_file) as f:
-                    cached = json.load(f)
-                print(f"[CACHE] Using cache for {label}")
-                return VisibilityData(
-                    domain=domain,
-                    label=label,
-                    country=country,
-                    mode=mode,
-                    current_value=cached["current_value"],
-                    previous_value=cached["previous_value"],
-                    history=cached["history"],
-                    last_updated=datetime.fromisoformat(cached["updated"]),
-                )
-            except Exception:
-                pass
+        vd = _read_cache(cache_file, domain, label, country, mode)
+        if vd:
+            print(f"[CACHE] Using cache for {label}")
+        return vd
+
+
+def _read_cache(cache_file: Path, domain: str, label: str, country: str, mode: str) -> Optional[VisibilityData]:
+    """Read a single domain from cache file."""
+    if not cache_file.exists():
+        return None
+    try:
+        with open(cache_file) as f:
+            cached = json.load(f)
+        return VisibilityData(
+            domain=domain, label=label, country=country, mode=mode,
+            current_value=cached["current_value"],
+            previous_value=cached["previous_value"],
+            history=cached["history"],
+            last_updated=datetime.fromisoformat(cached["updated"]),
+        )
+    except Exception:
         return None
 
 
@@ -323,20 +327,10 @@ def load_from_cache() -> list[VisibilityData]:
         country = d["country"]
         mode = d.get("mode", "weekly")
         cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
-        if cache_file.exists():
-            try:
-                with open(cache_file) as f:
-                    cached = json.load(f)
-                results.append(VisibilityData(
-                    domain=d["domain"], label=label, country=country, mode=mode,
-                    current_value=cached["current_value"],
-                    previous_value=cached["previous_value"],
-                    history=cached["history"],
-                    last_updated=datetime.fromisoformat(cached["updated"]),
-                ))
-                print(f"[CACHE] {label} ({country}) [{mode}]: {cached['current_value']:.2f}")
-            except Exception:
-                pass
+        vd = _read_cache(cache_file, d["domain"], label, country, mode)
+        if vd:
+            print(f"[CACHE] {label} ({country}) [{mode}]: {vd.current_value:.2f}")
+            results.append(vd)
     return results
 
 def fetch_all_active() -> list[VisibilityData]:
@@ -952,13 +946,11 @@ def main():
     domains_data: list[VisibilityData] = []
     last_fetch = datetime.min
     last_domain_keys: set[str] = set()
-    last_brand_hash = ""
     black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
     scroll_offset = 0
 
     # Load cache first for instant display, fetch from API in background later
     display_frame(matrix, render_loading())
-    last_brand_hash = json.dumps(config.brand, sort_keys=True)
     if config.active_domains:
         last_domain_keys = {f"{d['domain']}_{d['country']}_{d['mode']}" for d in config.active_domains}
         domains_data = load_from_cache()
