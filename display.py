@@ -17,7 +17,7 @@ import time
 import json
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from typing import Optional
 from pathlib import Path
@@ -30,6 +30,14 @@ CONFIG_PATH = BASE_DIR / "config.json"
 CONFIG_DEFAULT = BASE_DIR / "config.default.json"
 CACHE_DIR = BASE_DIR / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
+STATE_PATH = BASE_DIR / "state.json"
+
+def _write_state(index, is_brand=False):
+    """Write current slide index for web panel sync."""
+    try:
+        STATE_PATH.write_text(json.dumps({"index": index, "brand": is_brand}))
+    except Exception:
+        pass
 
 if not CONFIG_PATH.exists() and CONFIG_DEFAULT.exists():
     import shutil
@@ -156,11 +164,12 @@ def poll_button():
 
 def sleep_with_poll(seconds):
     """Sleep while polling the button every 100ms. Breaks early on screen state change."""
-    state_before = config.screen_off
+    screen_before = config.screen_off
     end = time.time() + seconds
     while time.time() < end:
         poll_button()
-        if config.screen_off != state_before:
+        config.reload()
+        if config.screen_off != screen_before:
             break
         time.sleep(0.1)
 
@@ -305,6 +314,30 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
                 pass
         return None
 
+
+def load_from_cache() -> list[VisibilityData]:
+    """Load all active domains from cache only — no API calls."""
+    results = []
+    for d in config.active_domains:
+        label = d["label"]
+        country = d["country"]
+        mode = d.get("mode", "weekly")
+        cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
+        if cache_file.exists():
+            try:
+                with open(cache_file) as f:
+                    cached = json.load(f)
+                results.append(VisibilityData(
+                    domain=d["domain"], label=label, country=country, mode=mode,
+                    current_value=cached["current_value"],
+                    previous_value=cached["previous_value"],
+                    history=cached["history"],
+                    last_updated=datetime.fromisoformat(cached["updated"]),
+                ))
+                print(f"[CACHE] {label} ({country}) [{mode}]: {cached['current_value']:.2f}")
+            except Exception:
+                pass
+    return results
 
 def fetch_all_active() -> list[VisibilityData]:
     """Fetches data for all active domains."""
@@ -791,8 +824,13 @@ def render_brand(scroll_offset: int = 0) -> Image.Image:
 def _hex_to_rgb(hex_str: str) -> tuple:
     hex_str = hex_str.lstrip("#")
     if len(hex_str) == 6:
-        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
-    return (255, 255, 255)
+        r, g, b = (int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+        # Correct warm tint only for near-white/gray colors
+        if min(r, g, b) > 150:
+            r = int(r * 0.90)
+            g = int(g * 0.92)
+        return (r, g, b)
+    return (230, 235, 255)
 
 
 RAINBOW_COLORS = [
@@ -868,7 +906,7 @@ def setup_matrix():
     options.gpio_slowdown = 6
     options.scan_mode = 0
     options.pwm_lsb_nanoseconds = 300
-    options.pwm_bits = 7
+    options.pwm_bits = 8
     options.drop_privileges = False
     return RGBMatrix(options=options)
 
@@ -914,22 +952,32 @@ def main():
     domains_data: list[VisibilityData] = []
     last_fetch = datetime.min
     last_domain_keys: set[str] = set()
+    last_brand_hash = ""
     black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
     scroll_offset = 0
 
-    # Show loading screen
+    # Load cache first for instant display, fetch from API in background later
     display_frame(matrix, render_loading())
+    last_brand_hash = json.dumps(config.brand, sort_keys=True)
+    if config.active_domains:
+        last_domain_keys = {f"{d['domain']}_{d['country']}_{d['mode']}" for d in config.active_domains}
+        domains_data = load_from_cache()
+        if domains_data:
+            print(f"[STARTUP] Loaded {len(domains_data)} domains from cache — displaying immediately")
+        # Schedule API refresh after first cycle
+        last_fetch = datetime.now() - timedelta(minutes=max(0, config.refresh_minutes - 1))
 
     while True:
         poll_button()
         config.reload()
         now = datetime.now()
 
-        # Screen off — show black, poll button frequently
+        # Screen off — show black, tight loop until turned on
         if config.screen_off:
             display_frame(matrix, black_frame)
-            for _ in range(20):
+            while config.screen_off:
                 poll_button()
+                config.reload()
                 time.sleep(0.05)
             continue
 
@@ -951,18 +999,20 @@ def main():
         # Reload data if due or if domains changed
         if domains_changed or (now - last_fetch).total_seconds() > config.refresh_minutes * 60:
             if domains_changed:
-                print(f"\n[{now.strftime('%H:%M')}] Domains changed, refetching...")
+                print(f"\n[{now.strftime('%H:%M')}] Domains changed — loading cache instantly...")
+                # Load from cache first so display updates immediately
+                cached = load_from_cache()
+                domains_data = cached if cached else []
+                last_domain_keys = current_keys
+                # Schedule API fetch for next cycle
+                last_fetch = datetime.now() - timedelta(minutes=max(0, config.refresh_minutes - 1))
             else:
                 print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
-            new_data = fetch_all_active()
-
-            if new_data:
-                domains_data = new_data
-            elif domains_changed:
-                domains_data = []
-
-            last_domain_keys = current_keys
-            last_fetch = now
+                new_data = fetch_all_active()
+                if new_data:
+                    domains_data = new_data
+                last_domain_keys = current_keys
+                last_fetch = now
 
         if not domains_data:
             # No data yet (no API key, no cache) → show demo + brand
@@ -980,12 +1030,14 @@ def main():
 
             img = render_frame(vd)
             display_frame(matrix, img)
+            _write_state(domains_data.index(vd))
 
             print(f"  [{vd.label}] {vd.current_value:.2f} ({vd.change_pct:+.1f}%) [{vd.mode}]")
             sleep_with_poll(config.cycle_seconds)
 
         # Brand card slide (with scrolling message)
         if config.brand.get("enabled") and not config.screen_off:
+            _write_state(len(domains_data), is_brand=True)
             scroll_offset = show_brand_scroll(matrix, scroll_offset)
 
 

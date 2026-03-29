@@ -290,7 +290,13 @@ def update_display():
 @app.route("/api/screen", methods=["GET"])
 def get_screen():
     config = load_config()
-    return jsonify({"screen_off": config["display"].get("screen_off", False)})
+    state = {"index": 0, "brand": False}
+    state_path = Path(__file__).parent / "state.json"
+    try:
+        state = json.loads(state_path.read_text())
+    except Exception:
+        pass
+    return jsonify({"screen_off": config["display"].get("screen_off", False), "slide": state})
 
 
 @app.route("/api/config/data_layout", methods=["GET"])
@@ -3390,6 +3396,7 @@ function toggleEdit() {
  if (isBrandSlide() && !brandData.enabled) {
  toggleBrandEnabled().then(() => {
  brandEditor.enter();
+ stopRotation();
  btn.className = 'btn btn-small'; btn.textContent = t('done_editing');
  resetBtn.style.display = '';
  btnPrev.disabled = true; btnNext.disabled = true; btnPlay.disabled = true;
@@ -3401,6 +3408,7 @@ function toggleEdit() {
  } else {
  dataEditor.enter();
  }
+ stopRotation();
  btn.className = 'btn btn-small'; btn.textContent = t('done_editing');
  resetBtn.style.display = '';
  btnPrev.disabled = true; btnNext.disabled = true; btnPlay.disabled = true;
@@ -3685,7 +3693,7 @@ function startScreenPoll() {
    const d = await r.json();
    const wasOff = screenOff;
    if (d.screen_off && !wasOff) {
-    screenOff = true; stopRotation();
+    screenOff = true; stopRotation(); stopMessageScroll();
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     displayCtx.drawImage(offCanvas, 0, 0);
     const btn = $('btnPower'); btn.classList.add('off'); btn.textContent = '\u23FB ON';
@@ -3698,6 +3706,16 @@ function startScreenPoll() {
     document.querySelector('.led-stage').classList.remove('screen-off');
     startRotation();
     renderSlide();
+   }
+   // Sync slide with LED panel (skip if editing layout)
+   if (!screenOff && !layoutEditMode && !dataLayoutEditMode && d.slide != null) {
+    const total = totalSlides();
+    const targetIdx = d.slide.brand ? (total - 1) : d.slide.index;
+    if (targetIdx >= 0 && targetIdx < total && targetIdx !== currentIndex) {
+     stopRotation();
+     currentIndex = targetIdx;
+     renderSlide();
+    }
    }
   } catch(e) {}
  }, 3000);
