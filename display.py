@@ -124,7 +124,6 @@ except ImportError:
 
 _button_ready = False
 _button_last_press = 0
-_button_prev_state = 1  # pull-up = HIGH when not pressed
 
 def setup_button():
     global _button_ready
@@ -888,6 +887,20 @@ def display_frame(matrix, img: Image.Image):
         _canvas = matrix.SwapOnVSync(_canvas)
 
 
+def show_brand_scroll(matrix, scroll_offset):
+    """Show brand card with scrolling message for one cycle."""
+    msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
+    brand_start = time.time()
+    while time.time() - brand_start < config.cycle_seconds:
+        config.reload()
+        if config.screen_off:
+            break
+        display_frame(matrix, render_brand(scroll_offset))
+        scroll_offset += 1
+        time.sleep(msg_speed)
+    return scroll_offset
+
+
 # ============================================================
 # MAIN LOOP
 # ============================================================
@@ -929,16 +942,7 @@ def main():
             config.reload()
             if config.screen_off:
                 continue
-            # Brand card slide with scroll
-            msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
-            brand_start = time.time()
-            while time.time() - brand_start < config.cycle_seconds:
-                config.reload()
-                if config.screen_off:
-                    break
-                display_frame(matrix, render_brand(scroll_offset))
-                scroll_offset += 1
-                time.sleep(msg_speed)
+            scroll_offset = show_brand_scroll(matrix, scroll_offset)
             continue
 
         # Reload config and data if due
@@ -973,15 +977,7 @@ def main():
 
         # Brand card slide (with scrolling message)
         if config.brand.get("enabled") and not config.screen_off:
-            brand_start = time.time()
-            msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
-            while time.time() - brand_start < config.cycle_seconds:
-                config.reload()
-                if config.screen_off:
-                    break
-                display_frame(matrix, render_brand(scroll_offset))
-                scroll_offset += 1
-                time.sleep(msg_speed)
+            scroll_offset = show_brand_scroll(matrix, scroll_offset)
 
 
 if __name__ == "__main__":
