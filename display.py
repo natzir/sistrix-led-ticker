@@ -113,7 +113,8 @@ config = Config()
 # GPIO BUTTON (physical on/off)
 # ============================================================
 
-BUTTON_GPIO = 26  # GPIO26 — free pin not used by Adafruit Bonnet
+BUTTON_GPIO = 19  # GPIO19 — free pin not used by Adafruit Bonnet
+BUTTON_DEBOUNCE = 1.0  # seconds — debounce to avoid multiple triggers per press
 
 try:
     import RPi.GPIO as GPIO
@@ -121,22 +122,50 @@ try:
 except ImportError:
     HAS_GPIO = False
 
-def _button_pressed(channel):
-    """Callback for physical button press — toggles screen_off."""
-    config.reload()
-    config.set_screen_off(not config.screen_off)
+_button_ready = False
+_button_last_press = 0
+_button_prev_state = 1  # pull-up = HIGH when not pressed
 
 def setup_button():
+    global _button_ready
     if not HAS_GPIO:
         print("[INFO] RPi.GPIO not available — no physical button support")
         return
     try:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(BUTTON_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(BUTTON_GPIO, GPIO.FALLING, callback=_button_pressed, bouncetime=300)
-        print(f"[BUTTON] GPIO{BUTTON_GPIO} configured (press to toggle screen)")
+        _button_ready = True
+        print(f"[BUTTON] GPIO{BUTTON_GPIO} configured (polling mode)")
     except Exception as e:
         print(f"[BUTTON] GPIO error (button disabled): {e}")
+
+def poll_button():
+    """Poll GPIO button — simple debounce for clean GPIO pin."""
+    global _button_last_press
+    if not _button_ready:
+        return
+    try:
+        now = time.time()
+        if (now - _button_last_press) < BUTTON_DEBOUNCE:
+            return
+        if GPIO.input(BUTTON_GPIO) == 0:
+            _button_last_press = now
+            config.reload()
+            new_state = not config.screen_off
+            print(f"[BUTTON] Pressed! screen_off → {new_state}")
+            config.set_screen_off(new_state)
+    except Exception as e:
+        print(f"[BUTTON] Error: {e}")
+
+def sleep_with_poll(seconds):
+    """Sleep while polling the button every 100ms. Breaks early on screen state change."""
+    state_before = config.screen_off
+    end = time.time() + seconds
+    while time.time() < end:
+        poll_button()
+        if config.screen_off != state_before:
+            break
+        time.sleep(0.1)
 
 # ============================================================
 # DATA MODEL
@@ -578,8 +607,8 @@ def render_frame(vd: VisibilityData) -> Image.Image:
     value_color = layout.get("valueColor", "#ffffff")
     change_up = layout.get("changeUpColor", "#00dc00")
     change_down = layout.get("changeDownColor", "#ff2828")
-    country_color = layout.get("countryColor", "#444444")
-    mode_color = layout.get("modeColor", "#999999")
+    country_color = layout.get("countryColor", "#dddddd")
+    mode_color = layout.get("modeColor", "#dddddd")
     change_color = change_up if vd.is_up else change_down
 
     # --- Line 1: Label + mode + change % ---
@@ -869,8 +898,8 @@ def main():
     print("  Panel: 64x32 RGB | Mode: HUB75")
     print("=" * 50)
 
-    setup_button()
     matrix = setup_matrix()
+    setup_button()
     domains_data: list[VisibilityData] = []
     last_fetch = datetime.min
     black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
@@ -880,20 +909,23 @@ def main():
     display_frame(matrix, render_loading())
 
     while True:
+        poll_button()
         config.reload()
         now = datetime.now()
 
-        # Screen off — show black, skip everything
+        # Screen off — show black, poll button frequently
         if config.screen_off:
             display_frame(matrix, black_frame)
-            time.sleep(1)
+            for _ in range(20):
+                poll_button()
+                time.sleep(0.05)
             continue
 
         # No active domains → rotate demo data + brand card
         if not config.active_domains:
             # Demo data slide
             display_frame(matrix, render_frame(DEMO_DATA))
-            time.sleep(config.cycle_seconds)
+            sleep_with_poll(config.cycle_seconds)
             config.reload()
             if config.screen_off:
                 continue
@@ -922,7 +954,7 @@ def main():
         if not domains_data:
             # No data yet (no API key, no cache) → show demo + brand
             display_frame(matrix, render_frame(DEMO_DATA))
-            time.sleep(config.cycle_seconds)
+            sleep_with_poll(config.cycle_seconds)
             continue
 
         # Cycle through active domains + brand card
@@ -937,7 +969,7 @@ def main():
             display_frame(matrix, img)
 
             print(f"  [{vd.label}] {vd.current_value:.2f} ({vd.change_pct:+.1f}%) [{vd.mode}]")
-            time.sleep(config.cycle_seconds)
+            sleep_with_poll(config.cycle_seconds)
 
         # Brand card slide (with scrolling message)
         if config.brand.get("enabled") and not config.screen_off:

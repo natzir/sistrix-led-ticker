@@ -287,6 +287,12 @@ def update_display():
     return jsonify({"ok": True, "display": config["display"]})
 
 
+@app.route("/api/screen", methods=["GET"])
+def get_screen():
+    config = load_config()
+    return jsonify({"screen_off": config["display"].get("screen_off", False)})
+
+
 @app.route("/api/config/data_layout", methods=["GET"])
 def get_data_layout():
     config = load_config()
@@ -1479,7 +1485,7 @@ function drawLED(data) {
  const changeColor = isUp ? ((DL.changeUpColor||'#00dc00')) : ((DL.changeDownColor||'#ff2828'));
  const labelColor = (DL.labelColor||'#ffffff');
  const valueColor = (DL.valueColor||'#ffffff');
- const countryColor = (DL.countryColor||'#999999');
+ const countryColor = (DL.countryColor||'#dddddd');
 
  // Label
  const lh = DL.labelH;
@@ -1489,7 +1495,7 @@ function drawLED(data) {
  const modeChar = data.mode === 'daily' ? 'D' : 'W';
  const mf = DL.modeFont || 'small';
  const mh = DL.modeH;
- const modeColor = (DL.modeColor||'#999999');
+ const modeColor = (DL.modeColor||'#dddddd');
  const labelW = measureText(data.label, DL.labelFont, lh);
  const modeX = (DL.modeX != null) ? DL.modeX : (DL.labelX + labelW + 1);
  drawText(modeChar, modeX, DL.modeY, modeColor, mf, mh);
@@ -3317,9 +3323,9 @@ async function saveDataLayout() { await postJSON('/api/config/data_layout', data
 
 function getColorKeyForElement(id, data) {
  if (id === 'label') return ['labelColor', '#ffffff'];
- if (id === 'mode') return ['modeColor', '#999999'];
+ if (id === 'mode') return ['modeColor', '#dddddd'];
  if (id === 'value') return ['valueColor', '#ffffff'];
- if (id === 'country') return ['countryColor', '#999999'];
+ if (id === 'country') return ['countryColor', '#dddddd'];
  if (id === 'change') { const isUp = data && data.is_up; return [isUp ? 'changeUpColor' : 'changeDownColor', isUp ? '#00dc00' : '#ff2828']; }
  if (id === 'spark') { const isUp = data && data.is_up; return [isUp ? 'sparkUpColor' : 'sparkDownColor', isUp ? '#00c853' : '#ff2d55']; }
  return null;
@@ -3669,9 +3675,37 @@ function startPolling() {
 }
 function stopPolling() { if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; } }
 startPolling();
+// Poll screen state every 3s to sync with physical button
+let _screenPoll = null;
+function startScreenPoll() {
+ if (_screenPoll) return;
+ _screenPoll = setInterval(async () => {
+  try {
+   const r = await fetch('/api/screen');
+   const d = await r.json();
+   const wasOff = screenOff;
+   if (d.screen_off && !wasOff) {
+    screenOff = true; stopRotation();
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    displayCtx.drawImage(offCanvas, 0, 0);
+    const btn = $('btnPower'); btn.classList.add('off'); btn.textContent = '\u23FB ON';
+    btn.title = btn.ariaLabel = t('screen_on');
+    document.querySelector('.led-stage').classList.add('screen-off');
+   } else if (!d.screen_off && wasOff) {
+    screenOff = false;
+    const btn = $('btnPower'); btn.classList.remove('off'); btn.textContent = '\u23FB';
+    btn.title = btn.ariaLabel = t('screen_off');
+    document.querySelector('.led-stage').classList.remove('screen-off');
+    startRotation();
+   }
+  } catch(e) {}
+ }, 3000);
+}
+function stopScreenPoll() { if (_screenPoll) { clearInterval(_screenPoll); _screenPoll = null; } }
+startScreenPoll();
 document.addEventListener('visibilitychange', () => {
- if (document.hidden) stopPolling();
- else { startPolling(); loadPreview(); loadCacheStatus(); }
+ if (document.hidden) { stopPolling(); stopScreenPoll(); }
+ else { startPolling(); startScreenPoll(); loadPreview(); loadCacheStatus(); }
 });
 requestAnimationFrame(syncArrowHeight);
 
