@@ -3697,6 +3697,7 @@ function startScreenPoll() {
     btn.title = btn.ariaLabel = t('screen_off');
     document.querySelector('.led-stage').classList.remove('screen-off');
     startRotation();
+    renderSlide();
    }
   } catch(e) {}
  }, 3000);

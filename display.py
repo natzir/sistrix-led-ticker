@@ -123,7 +123,7 @@ except ImportError:
     HAS_GPIO = False
 
 _button_ready = False
-_button_last_press = 0
+_button_prev = 1  # HIGH when not pressed
 
 def setup_button():
     global _button_ready
@@ -139,20 +139,18 @@ def setup_button():
         print(f"[BUTTON] GPIO error (button disabled): {e}")
 
 def poll_button():
-    """Poll GPIO button — simple debounce for clean GPIO pin."""
-    global _button_last_press
+    """Poll GPIO button — triggers on release (LOW→HIGH) to avoid double-fire."""
+    global _button_prev
     if not _button_ready:
         return
     try:
-        now = time.time()
-        if (now - _button_last_press) < BUTTON_DEBOUNCE:
-            return
-        if GPIO.input(BUTTON_GPIO) == 0:
-            _button_last_press = now
+        current = GPIO.input(BUTTON_GPIO)
+        if current == 1 and _button_prev == 0:
             config.reload()
             new_state = not config.screen_off
-            print(f"[BUTTON] Pressed! screen_off → {new_state}")
+            print(f"[BUTTON] Released! screen_off → {new_state}")
             config.set_screen_off(new_state)
+        _button_prev = current
     except Exception as e:
         print(f"[BUTTON] Error: {e}")
 
@@ -915,6 +913,7 @@ def main():
     setup_button()
     domains_data: list[VisibilityData] = []
     last_fetch = datetime.min
+    last_domain_keys: set[str] = set()
     black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
     scroll_offset = 0
 
@@ -945,14 +944,24 @@ def main():
             scroll_offset = show_brand_scroll(matrix, scroll_offset)
             continue
 
-        # Reload config and data if due
-        if (now - last_fetch).total_seconds() > config.refresh_minutes * 60:
-            print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
+        # Detect domain list changes (add/remove/toggle)
+        current_keys = {f"{d['domain']}_{d['country']}_{d['mode']}" for d in config.active_domains}
+        domains_changed = current_keys != last_domain_keys
+
+        # Reload data if due or if domains changed
+        if domains_changed or (now - last_fetch).total_seconds() > config.refresh_minutes * 60:
+            if domains_changed:
+                print(f"\n[{now.strftime('%H:%M')}] Domains changed, refetching...")
+            else:
+                print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
             new_data = fetch_all_active()
 
             if new_data:
                 domains_data = new_data
+            elif domains_changed:
+                domains_data = []
 
+            last_domain_keys = current_keys
             last_fetch = now
 
         if not domains_data:
