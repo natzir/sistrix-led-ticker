@@ -149,8 +149,7 @@ sistrix-led/
 ├── display.py           # LED panel rendering + GPIO button
 ├── web_panel.py         # Flask web panel (HTML/CSS/JS inline)
 ├── config.default.json  # Default configuration template
-├── config.json          # User configuration (auto-created)
-├── state.json           # Current slide state (LED ↔ web sync)
+├── config.json          # User configuration (auto-created on first run)
 ├── setup.sh             # Installation script
 └── cache/               # Cached API responses
     ├── RDDT_us_weekly.json
