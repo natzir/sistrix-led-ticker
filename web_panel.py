@@ -2193,6 +2193,7 @@ function applyConfig(config) {
  keyInput.dataset.masked = hasKey ? '1' : '';
  const dot = $('apiDot');
  dot.className = 'status-dot ' + (hasKey ? 'dot-green' : 'dot-red');
+ document.querySelector('link[rel="icon"]').href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='10' fill='" + (hasKey ? '%2300c853' : '%23f44336') + "'/></svg>";
  $('btnApiKey').querySelector('.api-label').textContent = 'API';
  if (!hasKey) sistrixCredits = null;
  // Set language/theme BEFORE rendering dynamic content
