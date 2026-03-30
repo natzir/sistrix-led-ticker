@@ -66,7 +66,7 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 ### 1. Install dependencies on the Pi
 
 ```bash
-git clone https://github.com/user/sistrix-led.git ~/sistrix-led
+git clone https://github.com/natzir/sistrix-led-ticker.git ~/sistrix-led
 cd ~/sistrix-led
 bash setup.sh
 ```
@@ -190,3 +190,5 @@ MIT
 ## Author
 
 [Natzir Turrado](https://natzir.com) — SEO consultant based in Barcelona.
+
+**Blog post (Spanish):** [SISTRIX LED Ticker: montaje de Raspberry Pi + LED Matrix Panel](https://natzir.com/posicionamiento-buscadores/sistrix-led-ticker-montaje-de-raspberry-pi-led-matrix-panel/)
