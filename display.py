@@ -16,6 +16,7 @@ Requires: Raspberry Pi + HUB75 64x32 panel + Adafruit Bonnet
 import time
 import json
 import os
+import threading
 import requests
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
@@ -35,7 +36,7 @@ STATE_PATH = BASE_DIR / "state.json"
 def _write_state(index, is_brand=False):
     """Write current slide index for web panel sync."""
     try:
-        STATE_PATH.write_text(json.dumps({"index": index, "brand": is_brand}))
+        STATE_PATH.write_text(json.dumps({"index": index, "brand": is_brand, "ts": time.time()}))
     except Exception:
         pass
 
@@ -922,6 +923,7 @@ def show_brand_scroll(matrix, scroll_offset):
     msg_speed = config.brand.get("layout", {}).get("msgSpeed", 42) / 1000.0
     brand_start = time.time()
     while time.time() - brand_start < config.cycle_seconds:
+        poll_button()
         config.reload()
         if config.screen_off:
             break
@@ -1000,11 +1002,15 @@ def main():
                 last_fetch = datetime.now() - timedelta(minutes=max(0, config.refresh_minutes - 1))
             else:
                 print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
-                new_data = fetch_all_active()
-                if new_data:
-                    domains_data = new_data
                 last_domain_keys = current_keys
                 last_fetch = now
+                def _bg_fetch(current_data):
+                    new_data = fetch_all_active()
+                    if new_data:
+                        nonlocal domains_data
+                        domains_data = new_data
+                        print(f"[FETCH] Done — {len(new_data)} domains updated")
+                threading.Thread(target=_bg_fetch, args=(domains_data,), daemon=True).start()
 
         if not domains_data:
             # No data yet (no API key, no cache) → show demo + brand

@@ -2051,8 +2051,8 @@ async function toggleScreen() {
   btn.classList.remove('off');
   btn.textContent = '\u23FB';
   btn.title = btn.ariaLabel = t('screen_off');
+  currentIndex = 0;
   renderCurrent();
-  if (autoRotate) startRotation();
  }
  await postJSON('/api/config/display', {screen_off: screenOff});
 }
@@ -3669,6 +3669,7 @@ window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTim
   }
   if (data.brand_layout) { Object.assign(brandLayout, data.brand_layout); }
   renderSlide();
+  if (autoRotate && !dataLayoutEditMode && !layoutEditMode) startRotation();
   syncArrowHeight();
   if (!data.config.has_api_key) setTimeout(() => toast(t('api_hint')), 500);
  } catch(e) {
@@ -3714,14 +3715,17 @@ function startScreenPoll() {
     renderSlide();
    }
    // Sync slide with LED panel (skip if editing layout)
-   if (!screenOff && !layoutEditMode && !dataLayoutEditMode && d.slide != null) {
+   const ledActive = d.slide && d.slide.ts && (Date.now()/1000 - d.slide.ts) < 15;
+   if (ledActive && !screenOff && !layoutEditMode && !dataLayoutEditMode) {
+    stopRotation();
     const total = totalSlides();
     const targetIdx = d.slide.brand ? (total - 1) : d.slide.index;
     if (targetIdx >= 0 && targetIdx < total && targetIdx !== currentIndex) {
-     stopRotation();
      currentIndex = targetIdx;
      renderSlide();
     }
+   } else if (!ledActive && autoRotate && !rotateInterval && !screenOff && !layoutEditMode && !dataLayoutEditMode) {
+    startRotation();
    }
   } catch(e) {}
  }, 3000);
