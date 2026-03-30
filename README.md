@@ -15,6 +15,9 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 - **Brand card**: custom logo (pixel art), name, and scrolling message with rainbow/gradient color support
 - **Smart colors**: hex, rainbow spectrum, and two-color gradient — all configurable per element
 - **Physical button** (optional): GPIO-connected momentary button to toggle screen on/off
+- **Instant startup**: loads cached data immediately, defers API refresh
+- **Instant domain sync**: adding or removing domains updates the display immediately from cache
+- **Color correction**: compensates for LED panel warm tint on white/gray colors
 - **Demo mode**: shows sample data when no domains are configured
 - **Flicker-free**: double-buffered rendering with `SwapOnVSync`
 
@@ -26,6 +29,8 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 - **Smart caching**: reduces API credit usage (weekly data cached 24h, daily cached 6h)
 - **Refresh with cost awareness**: shows credits consumed and available after each update
 - **Screen on/off**: syncs between web panel and physical button in real-time
+- **Slide sync**: web panel follows the LED panel's current slide in real-time
+- **Edit mode**: rotation pauses automatically while editing brand card or layout
 - **6 languages**: English, Spanish, French, Italian, German, Portuguese
 - **Responsive**: works on desktop and mobile
 - **Accessible**: WCAG 2.1 AA compliant (keyboard navigation, ARIA, focus trapping)
@@ -35,20 +40,23 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 
 ### Required
 
-| Component | Notes |
-|-----------|-------|
-| Raspberry Pi 4 | Pi 5 **not compatible** with Adafruit Bonnet |
-| HUB75 RGB LED Panel 64x32 P3 | 192x96mm, pitch 3mm (e.g. Waveshare) |
-| Adafruit RGB Matrix Bonnet | GPIO HAT for driving the panel |
-| 5V 4A Power Supply | For the LED panel. A USB charger + barrel jack adapter works too |
-| MicroSD card | With Raspberry Pi OS Lite 64-bit |
+| Component | Link | Notes |
+|-----------|------|-------|
+| Raspberry Pi 4 | [Raspberry Pi 4 4GB Starter Kit](https://amzn.to/4s3yoKr) | Pi 5 **not compatible** with Adafruit Bonnet |
+| HUB75 RGB LED Panel 64x32 P3 | [Waveshare 64x32 P3](https://amzn.to/4bDSEgK) | 192x96mm, pitch 3mm |
+| Adafruit RGB Matrix Bonnet | [RGB Matrix Bonnet](https://amzn.to/4bUhBDx) | GPIO HAT for driving the panel |
+| 5V 3A+ Power Supply | [5V 3A DC adapter](https://amzn.to/4rZKp3y) | 5.5x2.1mm barrel jack. A USB charger + barrel jack adapter works too |
 
 ### Optional
 
-| Component | Notes |
-|-----------|-------|
-| Momentary push button | 12mm, wired to GPIO 19 + GND — toggles screen on/off |
-| 3D printed case | Enclosure for panel + Pi |
+| Component | Link | Notes |
+|-----------|------|-------|
+| Momentary push button | [Gebildet 12mm button](https://amzn.to/4dR8sOB) | Wired to GPIO 19 + GND — toggles screen on/off |
+| Step drill bit | [Flintronic step drill set](https://amzn.to/4dPPqrS) | For drilling clean holes in the case (button, cables) |
+| 3D printed case | Search on Etsy for "64x32 P3 LED case" | 192x96mm, depth 13–15mm. P3 = 3mm pixel pitch |
+| M3 screws | M3x10mm or M3x12mm | To mount the panel to the case |
+
+> **About the case**: I had a friend 3D-print a case sized 192x96x14mm for the P3 64x32 panel. I used a step drill bit to make holes for the button and cable passthrough, and M3 screws to secure the panel. You can find similar cases on Etsy — search for "64x32 P3 LED panel case".
 
 > **No hardware?** The web panel works standalone as a full LED simulator — no Pi or panel needed for testing.
 
@@ -141,6 +149,7 @@ sistrix-led/
 ├── web_panel.py         # Flask web panel (HTML/CSS/JS inline)
 ├── config.default.json  # Default configuration template
 ├── config.json          # User configuration (auto-created)
+├── state.json           # Current slide state (LED ↔ web sync)
 ├── setup.sh             # Installation script
 └── cache/               # Cached API responses
     ├── DEST_es_weekly.json
