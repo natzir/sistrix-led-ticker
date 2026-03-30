@@ -55,7 +55,7 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 | Soldering kit | [60W soldering iron set](https://amzn.to/47zmeSe) | For soldering button wires to GPIO pins |
 | Step drill bit | [Flintronic step drill set](https://amzn.to/4dPPqrS) | For drilling clean holes in the case (button, cables) |
 | 3D printed case | Search on Etsy for "64x32 P3 LED case" | 192x96mm, depth 13–15mm. P3 = 3mm pixel pitch |
-| M3 screws | M3x10mm or M3x12mm | To mount the panel to the case |
+| M3 screws | [M3 screw set (560 pcs)](https://amzn.to/4uYcMlb) | Multiple lengths + nuts + washers — mount the panel to the case |
 
 > **About the case**: I had a friend 3D-print a case sized 192x96x14mm for the P3 64x32 panel. I used a step drill bit to make holes for the button and cable passthrough, and M3 screws to secure the panel. You can find similar cases on Etsy — search for "64x32 P3 LED panel case".
 
