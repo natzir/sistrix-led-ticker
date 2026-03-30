@@ -52,6 +52,7 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 | Component | Link | Notes |
 |-----------|------|-------|
 | Momentary push button | [Gebildet 12mm button](https://amzn.to/4dR8sOB) | Wired to GPIO 19 + GND — toggles screen on/off |
+| Soldering kit | [60W soldering iron set](https://amzn.to/47zmeSe) | For soldering button wires to GPIO pins |
 | Step drill bit | [Flintronic step drill set](https://amzn.to/4dPPqrS) | For drilling clean holes in the case (button, cables) |
 | 3D printed case | Search on Etsy for "64x32 P3 LED case" | 192x96mm, depth 13–15mm. P3 = 3mm pixel pitch |
 | M3 screws | M3x10mm or M3x12mm | To mount the panel to the case |
@@ -86,7 +87,7 @@ pip install -e . --break-system-packages
 Navigate to `http://raspberrypi.local:5001` from any device on your network.
 
 1. Enter your SISTRIX API key
-2. Add domains (e.g. `destinia.com`, country `es`, label `DEST`)
+2. Add domains (e.g. `reddit.com`, country `us`, label `RDDT`)
 3. Choose weekly or daily mode
 4. Adjust brightness, rotation speed, and colors
 
@@ -152,7 +153,7 @@ sistrix-led/
 ├── state.json           # Current slide state (LED ↔ web sync)
 ├── setup.sh             # Installation script
 └── cache/               # Cached API responses
-    ├── DEST_es_weekly.json
+    ├── RDDT_us_weekly.json
     └── ...
 ```
 
