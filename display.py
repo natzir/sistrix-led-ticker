@@ -31,7 +31,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 CONFIG_DEFAULT = BASE_DIR / "config.default.json"
 CACHE_DIR = BASE_DIR / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
-STATE_PATH = BASE_DIR / "state.json"
+STATE_PATH = Path("/tmp/sistrix-state.json")
 
 def _write_state(index, is_brand=False):
     """Write current slide index for web panel sync."""
@@ -950,6 +950,7 @@ def main():
     last_domain_keys: set[str] = set()
     black_frame = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
     scroll_offset = 0
+    fetching = False
 
     # Load cache first for instant display, fetch from API in background later
     display_frame(matrix, render_loading())
@@ -1004,13 +1005,18 @@ def main():
                 print(f"\n[{now.strftime('%H:%M')}] Updating {len(config.active_domains)} domains...")
                 last_domain_keys = current_keys
                 last_fetch = now
-                def _bg_fetch(current_data):
-                    new_data = fetch_all_active()
-                    if new_data:
-                        nonlocal domains_data
-                        domains_data = new_data
-                        print(f"[FETCH] Done — {len(new_data)} domains updated")
-                threading.Thread(target=_bg_fetch, args=(domains_data,), daemon=True).start()
+                if not fetching:
+                    fetching = True
+                    def _bg_fetch():
+                        nonlocal domains_data, fetching
+                        try:
+                            new_data = fetch_all_active()
+                            if new_data:
+                                domains_data = new_data
+                                print(f"[FETCH] Done — {len(new_data)} domains updated")
+                        finally:
+                            fetching = False
+                    threading.Thread(target=_bg_fetch, daemon=True).start()
 
         if not domains_data:
             # No data yet (no API key, no cache) → show demo + brand

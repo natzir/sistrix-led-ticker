@@ -291,7 +291,7 @@ def update_display():
 def get_screen():
     config = load_config()
     state = {"index": 0, "brand": False}
-    state_path = Path(__file__).parent / "state.json"
+    state_path = Path("/tmp/sistrix-state.json")
     try:
         state = json.loads(state_path.read_text())
     except Exception:
@@ -3715,16 +3715,18 @@ function startScreenPoll() {
     renderSlide();
    }
    // Sync slide with LED panel (skip if editing layout)
-   const ledActive = d.slide && d.slide.ts && (Date.now()/1000 - d.slide.ts) < 15;
-   if (ledActive && !screenOff && !layoutEditMode && !dataLayoutEditMode) {
-    stopRotation();
+   const ledStaleMs = cycleTime + 5000;
+   const ledActive = d.slide && d.slide.ts && (Date.now()/1000 - d.slide.ts) < ledStaleMs / 1000;
+   const isEditing = layoutEditMode || dataLayoutEditMode;
+   if (ledActive && !screenOff && !isEditing) {
+    if (rotateInterval) stopRotation();
     const total = totalSlides();
     const targetIdx = d.slide.brand ? (total - 1) : d.slide.index;
     if (targetIdx >= 0 && targetIdx < total && targetIdx !== currentIndex) {
      currentIndex = targetIdx;
      renderSlide();
     }
-   } else if (!ledActive && autoRotate && !rotateInterval && !screenOff && !layoutEditMode && !dataLayoutEditMode) {
+   } else if (!ledActive && autoRotate && !rotateInterval && !screenOff && !isEditing) {
     startRotation();
    }
   } catch(e) {}
