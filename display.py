@@ -913,7 +913,6 @@ def display_frame(matrix, img: Image.Image):
     if matrix:
         if _canvas is None:
             _canvas = matrix.CreateFrameCanvas()
-        _canvas.Clear()
         _canvas.SetImage(img)
         _canvas = matrix.SwapOnVSync(_canvas)
 
