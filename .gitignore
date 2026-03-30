@@ -3,14 +3,6 @@ cache/
 *.pyc
 .DS_Store
 node_modules/
-package.json
-package-lock.json
-*.jpg
-*.png
-untitled folder/
-visibility_chart.html
-test_*.py
 config.json
-blog-post.html
 CLAUDE.md
 .claude/
