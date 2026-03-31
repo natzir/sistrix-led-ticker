@@ -26,7 +26,7 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 - **Layout editor**: drag to reposition, resize by corners, double-click to edit text
 - **Domain management**: add, remove, reorder (drag & drop), toggle active/inactive, switch weekly/daily mode
 - **Brand card editor**: custom logo, name, scrolling message, color picker with gradient support
-- **Smart caching**: reduces API credit usage (weekly data cached 24h, daily cached 6h)
+- **Smart caching**: reduces API credit usage — only fetches when new data exists (daily after midnight, weekly after Monday)
 - **Refresh with cost awareness**: shows credits consumed and available after each update
 - **Screen on/off**: syncs between web panel and physical button in real-time
 - **Slide sync**: web panel follows the LED panel's current slide in real-time
@@ -136,8 +136,8 @@ Every text element (label, value, mode, country, change %, sparkline) has config
 
 Each data point from SISTRIX costs 1 credit. The built-in smart cache minimizes usage:
 
-- **Weekly mode**: ~52 data points on first fetch, then cached for 24h
-- **Daily mode**: ~100 data points on first fetch, then cached for 6h
+- **Weekly mode**: ~52 data points on first fetch, refreshes after Monday (SISTRIX updates weekly on Mondays)
+- **Daily mode**: ~30 data points on first fetch, refreshes after midnight when new data is available
 - **Quick check**: 1 credit to check if new data is available before full fetch
 - **Refresh button**: only fetches missing data points, shows credits consumed
 
