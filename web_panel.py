@@ -68,8 +68,10 @@ def load_config():
 def save_config(data):
     global _config_cache, _config_mtime
     with _config_lock:
-        with open(CONFIG_PATH, "w") as f:
+        tmp = CONFIG_PATH.with_suffix(".tmp")
+        with open(tmp, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        tmp.rename(CONFIG_PATH)
         _config_cache = data
         _config_mtime = CONFIG_PATH.stat().st_mtime
 

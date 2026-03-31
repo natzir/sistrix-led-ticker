@@ -45,12 +45,11 @@ Built with a Raspberry Pi 4 and a HUB75 LED panel. Fully configurable from any b
 | Raspberry Pi 4 | [Raspberry Pi 4 4GB Starter Kit](https://amzn.to/4s3yoKr) | Pi 5 **not compatible** with Adafruit Bonnet |
 | HUB75 RGB LED Panel 64x32 P3 | [Waveshare 64x32 P3](https://amzn.to/4bDSEgK) | 192x96mm, pitch 3mm |
 | Adafruit RGB Matrix Bonnet | [RGB Matrix Bonnet](https://amzn.to/4bUhBDx) | GPIO HAT for driving the panel |
-| 5V 3A+ Power Supply | [5V 3A DC adapter](https://amzn.to/4rZKp3y) | 5.5x2.1mm barrel jack. A USB charger + barrel jack adapter works too |
-
-### Optional
+### Optional (but recommended)
 
 | Component | Link | Notes |
 |-----------|------|-------|
+| 5V 3A+ Power Supply | [5V 3A DC adapter](https://amzn.to/4rZKp3y) | 5.5x2.1mm barrel jack. At low brightness (<50%) the panel runs fine powered by the Pi alone. Recommended for high brightness or mostly-white screens |
 | Momentary push button | [Gebildet 12mm button](https://amzn.to/4dR8sOB) | Wired to GPIO 19 + GND — toggles screen on/off |
 | Soldering kit | [60W soldering iron set](https://amzn.to/47zmeSe) | For soldering button wires to GPIO pins |
 | Step drill bit | [Flintronic step drill set](https://amzn.to/4dPPqrS) | For drilling clean holes in the case (button, cables) |

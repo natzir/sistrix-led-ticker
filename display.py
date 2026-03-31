@@ -106,8 +106,10 @@ class Config:
             with open(CONFIG_PATH) as f:
                 data = json.load(f)
             data.setdefault("display", {})["screen_off"] = value
-            with open(CONFIG_PATH, "w") as f:
+            tmp = CONFIG_PATH.with_suffix(".tmp")
+            with open(tmp, "w") as f:
                 json.dump(data, f, indent=2)
+            tmp.rename(CONFIG_PATH)
             self._data = data
             self._last_mtime = os.path.getmtime(CONFIG_PATH)
             print(f"[SCREEN] {'OFF' if value else 'ON'}")
@@ -218,6 +220,33 @@ DEMO_DATA = VisibilityData(
 # SISTRIX API
 # ============================================================
 
+def _cache_needs_refresh(cache_file: Path, mode: str) -> bool:
+    """Check if cache has stale data based on the latest data point date.
+    Daily: refresh if latest data point is not from today (after 2am).
+    Weekly: SISTRIX updates on Mondays. Refresh if we don't have this week's Monday data.
+    """
+    if not cache_file.exists():
+        return True
+    try:
+        with open(cache_file) as f:
+            cached = json.load(f)
+        latest = cached.get("latest_date", "")
+        if not latest:
+            return True  # old cache format, refresh
+        latest_date = datetime.strptime(latest[:10], "%Y-%m-%d").date()
+        today = datetime.now().date()
+        if mode == "daily":
+            # Refresh if we don't have today's data and it's past 2am
+            return latest_date < today and datetime.now().hour >= 2
+        else:
+            # Weekly data comes on Mondays — refresh if latest is before this week's Monday
+            days_since_monday = today.weekday()  # 0=Monday
+            this_monday = today - timedelta(days=days_since_monday)
+            return latest_date < this_monday
+    except Exception:
+        return True
+
+
 def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
     """
     Fetches SISTRIX visibility data.
@@ -264,6 +293,7 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
         else:
             max_points = 52   # Last year of weekly data
 
+        latest_date = entries[0].get("date", "")  # e.g. "2026-03-31"
         history_values = [float(e.get("value", 0)) for e in entries[:max_points]]
         current = history_values[0] if history_values else 0
         previous = history_values[1] if len(history_values) > 1 else current
@@ -285,6 +315,7 @@ def fetch_visibility(domain_config: dict) -> Optional[VisibilityData]:
                 "current_value": current,
                 "previous_value": previous,
                 "history": history_values,
+                "latest_date": latest_date,
                 "updated": datetime.now().isoformat(),
                 "cached_at": datetime.now().isoformat(),
             }, f)
@@ -320,25 +351,34 @@ def _read_cache(cache_file: Path, domain: str, label: str, country: str, mode: s
         return None
 
 
+def _cache_path(d: dict) -> Path:
+    return CACHE_DIR / f"{d['label']}_{d['country']}_{d.get('mode', 'weekly')}.json"
+
+
 def load_from_cache() -> list[VisibilityData]:
     """Load all active domains from cache only — no API calls."""
     results = []
     for d in config.active_domains:
-        label = d["label"]
-        country = d["country"]
-        mode = d.get("mode", "weekly")
-        cache_file = CACHE_DIR / f"{label}_{country}_{mode}.json"
-        vd = _read_cache(cache_file, d["domain"], label, country, mode)
+        vd = _read_cache(_cache_path(d), d["domain"], d["label"], d["country"], d.get("mode", "weekly"))
         if vd:
-            print(f"[CACHE] {label} ({country}) [{mode}]: {vd.current_value:.2f}")
+            print(f"[CACHE] {d['label']} ({d['country']}) [{d.get('mode', 'weekly')}]: {vd.current_value:.2f}")
             results.append(vd)
     return results
 
+
 def fetch_all_active() -> list[VisibilityData]:
-    """Fetches data for all active domains."""
+    """Fetches data for all active domains, skipping those with fresh cache."""
     config.reload()
     results = []
     for d in config.active_domains:
+        cache_file = _cache_path(d)
+        mode = d.get("mode", "weekly")
+        if not _cache_needs_refresh(cache_file, mode):
+            vd = _read_cache(cache_file, d["domain"], d["label"], d["country"], mode)
+            if vd:
+                print(f"[FRESH] {d['label']} ({d['country']}) [{mode}]: skip API")
+                results.append(vd)
+                continue
         vd = fetch_visibility(d)
         if vd:
             results.append(vd)
@@ -1024,7 +1064,8 @@ def main():
             continue
 
         # Cycle through active domains + brand card
-        for vd in domains_data:
+        current_data = domains_data  # snapshot to avoid race with bg fetch
+        for i, vd in enumerate(current_data):
             config.reload()
 
             if config.screen_off:
@@ -1033,14 +1074,14 @@ def main():
 
             img = render_frame(vd)
             display_frame(matrix, img)
-            _write_state(domains_data.index(vd))
+            _write_state(i)
 
             print(f"  [{vd.label}] {vd.current_value:.2f} ({vd.change_pct:+.1f}%) [{vd.mode}]")
             sleep_with_poll(config.cycle_seconds)
 
         # Brand card slide (with scrolling message)
         if config.brand.get("enabled") and not config.screen_off:
-            _write_state(len(domains_data), is_brand=True)
+            _write_state(len(current_data), is_brand=True)
             scroll_offset = show_brand_scroll(matrix, scroll_offset)
 
 
